@@ -1,4 +1,4 @@
-# VMC — Contextual Memory Virtualisation
+# CMV — Contextual Memory Virtualisation
 
 Save, name, and branch from Claude Code sessions. Stop re-explaining your codebase.
 
@@ -6,7 +6,7 @@ Save, name, and branch from Claude Code sessions. Stop re-explaining your codeba
 
 You spend 30 minutes having Claude analyze your codebase. That context is now trapped in one session. You can't save it, branch from it, or reuse it. When the session fills up or you want to try a different approach, you start over.
 
-VMC fixes this. Snapshot a session, branch from it unlimited times, each branch gets the full conversation history.
+CMV fixes this. Snapshot a session, branch from it unlimited times, each branch gets the full conversation history.
 
 ## Install
 
@@ -24,11 +24,11 @@ curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 sudo apt install -y nodejs
 ```
 
-Then install VMC:
+Then install CMV:
 
 ```bash
-git clone https://github.com/CosmoNaught/vmc.git
-cd vmc
+git clone https://github.com/CosmoNaught/cmv.git
+cd cmv
 npm install
 npm run build
 npm link
@@ -39,52 +39,52 @@ npm link
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
-If `vmc` isn't found after install, close and reopen your terminal so it picks up the new PATH.
+If `cmv` isn't found after install, close and reopen your terminal so it picks up the new PATH.
 
 Verify it works:
 
 ```bash
-vmc --help
-vmc sessions
+cmv --help
+cmv sessions
 ```
 
 ## Quick Start
 
 ```bash
 # Fastest way: launch the interactive dashboard
-vmc
+cmv
 
 # Or use individual commands:
 
 # 1. See all your Claude Code sessions
-vmc sessions
+cmv sessions
 
 # 2. Snapshot the most recent session
-vmc snapshot "my-analysis" --latest -d "Full codebase analysis"
+cmv snapshot "my-analysis" --latest -d "Full codebase analysis"
 
 # 3. Branch from it (opens a new Claude session with full context)
-vmc branch "my-analysis" --name "try-refactor"
+cmv branch "my-analysis" --name "try-refactor"
 
 # 4. Branch again — independent session, same starting point
-vmc branch "my-analysis" --name "try-rewrite"
+cmv branch "my-analysis" --name "try-rewrite"
 
 # 5. See the tree
-vmc tree
+cmv tree
 ```
 
 ## Dashboard
 
-Run `vmc` with no arguments (or `vmc dashboard`) to launch the interactive TUI:
+Run `cmv` with no arguments (or `cmv dashboard`) to launch the interactive TUI:
 
 ```bash
-vmc
+cmv
 ```
 
 Three-column Ranger-style layout — projects, snapshots/sessions, and details:
 
 ```
 ┌─ Projects ────┬─ Snapshots / Sessions ─────┬─ Details ──────────────┐
-│ ▸ d:\VMC      │ ● codebase-analyzed    82m  │ Name: codebase-analyzed│
+│ ▸ d:\CMV      │ ● codebase-analyzed    82m  │ Name: codebase-analyzed│
 │   d:\myproj   │   ├── implement-auth  (br)  │ Created:     2d ago    │
 │   ~/other     │   └── auth-designed    95m  │ Source:  7e616107…     │
 │               │ ── Sessions ──────────────  │ Messages:    82        │
@@ -105,94 +105,94 @@ Three-column Ranger-style layout — projects, snapshots/sessions, and details:
 | `Tab` | Switch focus between Projects and Snapshots/Sessions |
 | `b` | Branch from selected snapshot (prompts for name) |
 | `s` | Snapshot selected session or latest (prompts for name) |
-| `d` | Delete selected snapshot (asks confirmation) |
-| `e` | Export selected snapshot to `.vmc` file |
-| `i` | Import a `.vmc` file (prompts for path) |
+| `d` | Delete selected snapshot or branch (asks confirmation) |
+| `e` | Export selected snapshot to `.cmv` file |
+| `i` | Import a `.cmv` file (prompts for path) |
 | `Enter` | Branch from selected snapshot and launch Claude |
 | `q` | Quit |
 
-The left column lists all Claude Code projects. The middle column shows snapshots and active sessions for the selected project. The right column shows details for the selected item. Selecting a session and pressing `s` snapshots that specific session. All actions use the same core functions as the CLI commands.
+The left column lists all Claude Code projects. The middle column shows snapshots and active sessions for the selected project. The right column shows details for the selected item. Selecting a session and pressing `s` snapshots that specific session. Selecting a branch and pressing `d` deletes it along with its session file. All actions use the same core functions as the CLI commands.
 
 ## Commands
 
-### `vmc dashboard`
+### `cmv dashboard`
 
-Launch the interactive TUI dashboard. Same as running `vmc` with no arguments.
+Launch the interactive TUI dashboard. Same as running `cmv` with no arguments.
 
 ```bash
-vmc dashboard
+cmv dashboard
 ```
 
-### `vmc sessions`
+### `cmv sessions`
 
-List all Claude Code sessions VMC can find.
+List all Claude Code sessions CMV can find.
 
 ```bash
-vmc sessions                        # all sessions, newest first
-vmc sessions -p myproject           # filter by project name
-vmc sessions --sort size            # sort by message count
-vmc sessions --all                  # include empty file-tracking sessions
-vmc sessions --json                 # JSON output
+cmv sessions                        # all sessions, newest first
+cmv sessions -p myproject           # filter by project name
+cmv sessions --sort size            # sort by message count
+cmv sessions --all                  # include empty file-tracking sessions
+cmv sessions --json                 # JSON output
 ```
 
 Empty sessions (file-tracking only, 0 messages) are hidden by default. Use `--all` to show them.
 
-Sessions that were snapshotted or branched via VMC are labeled in the **VMC** column (`snap: name` or `branch: name`).
+Sessions that were snapshotted or branched via CMV are labeled in the **CMV** column (`snap: name` or `branch: name`).
 
 This is your starting point. Find the session ID you want to snapshot.
 
-### `vmc snapshot <name>`
+### `cmv snapshot <name>`
 
 Save a session's conversation state as a named snapshot.
 
 ```bash
-# Snapshot a specific session (copy the ID from `vmc sessions`)
-vmc snapshot "codebase-analyzed" --session 7e616107-a7ea-4844-af46-f5b3cc145d15
+# Snapshot a specific session (copy the ID from `cmv sessions`)
+cmv snapshot "codebase-analyzed" --session 7e616107-a7ea-4844-af46-f5b3cc145d15
 
 # Snapshot whatever session was most recently active
-vmc snapshot "codebase-analyzed" --latest
+cmv snapshot "codebase-analyzed" --latest
 
 # Add description and tags
-vmc snapshot "auth-designed" --latest -d "Auth architecture decided" -t "auth,design"
+cmv snapshot "auth-designed" --latest -d "Auth architecture decided" -t "auth,design"
 ```
 
-What happens: VMC copies the session's JSONL file to `~/.vmc/snapshots/` and records metadata. The original session is untouched.
+What happens: CMV copies the session's JSONL file to `~/.cmv/snapshots/` and records metadata. The original session is untouched.
 
-### `vmc branch <snapshot>`
+### `cmv branch <snapshot>`
 
 Create a new Claude Code session forked from a snapshot. The new session has the full conversation history — Claude remembers everything.
 
 ```bash
 # Branch and launch Claude immediately
-vmc branch "codebase-analyzed" --name "implement-auth"
+cmv branch "codebase-analyzed" --name "implement-auth"
 
 # Just create the session file, don't launch Claude
-vmc branch "codebase-analyzed" --name "implement-api" --skip-launch
+cmv branch "codebase-analyzed" --name "implement-api" --skip-launch
 
 # Preview the command without doing anything
-vmc branch "codebase-analyzed" --dry-run
+cmv branch "codebase-analyzed" --dry-run
 ```
 
 Under the hood this copies the snapshot's JSONL to the Claude project directory with a new session ID, then runs `claude --resume <new-id>`.
 
-### `vmc list`
+### `cmv list`
 
 Show all snapshots.
 
 ```bash
-vmc list                            # all snapshots
-vmc list --tag auth                 # filter by tag
-vmc list --sort branches            # sort by branch count
-vmc list --sort name                # sort alphabetically
-vmc list --json                     # JSON output
+cmv list                            # all snapshots
+cmv list --tag auth                 # filter by tag
+cmv list --sort branches            # sort by branch count
+cmv list --sort name                # sort alphabetically
+cmv list --json                     # JSON output
 ```
 
-### `vmc tree`
+### `cmv tree`
 
 Show the snapshot/branch hierarchy.
 
 ```bash
-vmc tree
+cmv tree
 ```
 
 ```
@@ -205,56 +205,56 @@ codebase-analyzed (snapshot, 2d ago, 82 msgs)
 ```
 
 ```bash
-vmc tree --depth 1                  # limit depth
-vmc tree --json                     # JSON output
+cmv tree --depth 1                  # limit depth
+cmv tree --json                     # JSON output
 ```
 
-### `vmc info <name>`
+### `cmv info <name>`
 
 Show everything about a snapshot.
 
 ```bash
-vmc info "codebase-analyzed"
+cmv info "codebase-analyzed"
 ```
 
 Shows: ID, creation date, source session, project path, message count, JSONL size, description, tags, parent lineage, and all branches.
 
-### `vmc delete <name>`
+### `cmv delete <name>`
 
-Delete a snapshot and its stored files.
-
-```bash
-vmc delete "old-snapshot"           # asks for confirmation
-vmc delete "old-snapshot" -f        # skip confirmation
-```
-
-### `vmc export <name>`
-
-Package a snapshot as a portable `.vmc` file for sharing or backup.
+Delete a snapshot and its stored files. To delete individual branches, use the `d` key in the TUI dashboard.
 
 ```bash
-vmc export "codebase-analyzed"                          # creates ./codebase-analyzed.vmc
-vmc export "codebase-analyzed" -o ~/backups/analysis.vmc  # custom path
+cmv delete "old-snapshot"           # asks for confirmation
+cmv delete "old-snapshot" -f        # skip confirmation
 ```
 
-### `vmc import <path>`
+### `cmv export <name>`
 
-Import a snapshot from a `.vmc` file.
+Package a snapshot as a portable `.cmv` file for sharing or backup.
 
 ```bash
-vmc import ./codebase-analyzed.vmc                     # import as-is
-vmc import ./codebase-analyzed.vmc --rename "imported"  # rename on import
-vmc import ./codebase-analyzed.vmc --force              # overwrite if exists
+cmv export "codebase-analyzed"                          # creates ./codebase-analyzed.cmv
+cmv export "codebase-analyzed" -o ~/backups/analysis.cmv  # custom path
 ```
 
-### `vmc config`
+### `cmv import <path>`
+
+Import a snapshot from a `.cmv` file.
+
+```bash
+cmv import ./codebase-analyzed.cmv                     # import as-is
+cmv import ./codebase-analyzed.cmv --rename "imported"  # rename on import
+cmv import ./codebase-analyzed.cmv --force              # overwrite if exists
+```
+
+### `cmv config`
 
 View or set configuration.
 
 ```bash
-vmc config                                    # show all settings
-vmc config claude_cli_path                    # show one setting
-vmc config claude_cli_path /usr/local/bin/claude  # set claude path
+cmv config                                    # show all settings
+cmv config claude_cli_path                    # show one setting
+cmv config claude_cli_path /usr/local/bin/claude  # set claude path
 ```
 
 **Settings:**
@@ -262,17 +262,17 @@ vmc config claude_cli_path /usr/local/bin/claude  # set claude path
 | Key | Description | Default |
 |-----|-------------|---------|
 | `claude_cli_path` | Path to claude CLI executable | `claude` (uses PATH) |
-| `default_project` | Default project filter for `vmc sessions` | none |
+| `default_project` | Default project filter for `cmv sessions` | none |
 
-### `vmc completions`
+### `cmv completions`
 
-Install shell tab-completion for all VMC commands, options, snapshot names, and session IDs.
+Install shell tab-completion for all CMV commands, options, snapshot names, and session IDs.
 
 ```bash
-vmc completions                     # output completion script
-vmc completions --install           # install to your shell profile
-vmc completions powershell          # force PowerShell format
-vmc completions bash                # force bash format
+cmv completions                     # output completion script
+cmv completions --install           # install to your shell profile
+cmv completions powershell          # force PowerShell format
+cmv completions bash                # force bash format
 ```
 
 Supports PowerShell (default on Windows) and bash. After installing, restart your terminal.
@@ -286,42 +286,42 @@ Supports PowerShell (default on Windows) and bash. After installing, restart you
 # ... long conversation about architecture ...
 
 # Save it
-vmc snapshot "full-analysis" --latest -d "Complete codebase analysis"
+cmv snapshot "full-analysis" --latest -d "Complete codebase analysis"
 
 # Branch for each task — each gets the full context
-vmc branch "full-analysis" --name "add-auth"
-vmc branch "full-analysis" --name "add-api"
-vmc branch "full-analysis" --name "refactor-db"
+cmv branch "full-analysis" --name "add-auth"
+cmv branch "full-analysis" --name "add-api"
+cmv branch "full-analysis" --name "refactor-db"
 ```
 
 ### Chain snapshots for deep work
 
 ```bash
 # Snapshot after initial analysis
-vmc snapshot "analyzed" --latest
+cmv snapshot "analyzed" --latest
 
 # Branch, do auth design work in that session
-vmc branch "analyzed" --name "auth-work"
+cmv branch "analyzed" --name "auth-work"
 
 # ... work in the auth session ...
 
 # Snapshot the auth session too
-vmc snapshot "auth-designed" --session <auth-session-id> -t "auth"
+cmv snapshot "auth-designed" --session <auth-session-id> -t "auth"
 
 # Now branch from the auth snapshot for frontend vs backend
-vmc branch "auth-designed" --name "auth-frontend"
-vmc branch "auth-designed" --name "auth-backend"
+cmv branch "auth-designed" --name "auth-frontend"
+cmv branch "auth-designed" --name "auth-backend"
 ```
 
 ### Try multiple approaches
 
 ```bash
-vmc snapshot "before-refactor" --latest
+cmv snapshot "before-refactor" --latest
 
-vmc branch "before-refactor" --name "approach-a"
+cmv branch "before-refactor" --name "approach-a"
 # ... try approach A ...
 
-vmc branch "before-refactor" --name "approach-b"
+cmv branch "before-refactor" --name "approach-b"
 # ... try approach B ...
 
 # Compare results, pick the winner
@@ -331,19 +331,19 @@ vmc branch "before-refactor" --name "approach-b"
 
 ```bash
 # You: export your analysis
-vmc export "codebase-analyzed" -o ./team-context.vmc
+cmv export "codebase-analyzed" -o ./team-context.cmv
 
 # Teammate: import and branch
-vmc import ./team-context.vmc
-vmc branch "codebase-analyzed" --name "my-task"
+cmv import ./team-context.cmv
+cmv branch "codebase-analyzed" --name "my-task"
 ```
 
 ## Storage
 
-VMC stores everything in `~/.vmc/`:
+CMV stores everything in `~/.cmv/`:
 
 ```
-~/.vmc/
+~/.cmv/
 ├── index.json              # Master index of all snapshots and branches
 ├── config.json             # Settings
 └── snapshots/
@@ -353,31 +353,31 @@ VMC stores everything in `~/.vmc/`:
             └── <id>.jsonl  # Copy of the Claude session file
 ```
 
-VMC reads session data from `~/.claude/` for discovery. When branching, it copies the snapshot's JSONL into the Claude project directory with a new session ID and updates `sessions-index.json`, then resumes the new session via `claude --resume`.
+CMV reads session data from `~/.claude/` for discovery. When branching, it copies the snapshot's JSONL into the Claude project directory with a new session ID and updates `sessions-index.json`, then resumes the new session via `claude --resume`.
 
 ## Troubleshooting
 
-**`vmc sessions` shows nothing**
-- Make sure you've used Claude Code at least once. VMC reads from `~/.claude/projects/`.
+**`cmv sessions` shows nothing**
+- Make sure you've used Claude Code at least once. CMV reads from `~/.claude/projects/`.
 
-**`vmc sessions` is missing a project**
-- Some projects may not have a `sessions-index.json` yet. VMC falls back to scanning `.jsonl` files directly, but the project directory must exist under `~/.claude/projects/`.
+**`cmv sessions` is missing a project**
+- Some projects may not have a `sessions-index.json` yet. CMV falls back to scanning `.jsonl` files directly, but the project directory must exist under `~/.claude/projects/`.
 
-**`vmc branch` fails to launch**
+**`cmv branch` fails to launch**
 - Check that `claude` is in your PATH: `claude --version`
-- Or set the path explicitly: `vmc config claude_cli_path "C:\Users\you\.local\bin\claude.exe"`
+- Or set the path explicitly: `cmv config claude_cli_path "C:\Users\you\.local\bin\claude.exe"`
 
 **Snapshot warns "session appears active"**
 - You're snapshotting a session that's currently in use. The snapshot may be incomplete. Best to exit the Claude session first, then snapshot.
 
-**Windows: `vmc` not recognized**
+**Windows: `cmv` not recognized**
 - Close and reopen your terminal after installing Node.js
 - If using PowerShell, run: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
 
 ## Debug
 
-Set `VMC_DEBUG=1` for full stack traces on errors:
+Set `CMV_DEBUG=1` for full stack traces on errors:
 
 ```bash
-VMC_DEBUG=1 vmc sessions
+CMV_DEBUG=1 cmv sessions
 ```

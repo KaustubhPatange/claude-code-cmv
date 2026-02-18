@@ -18,7 +18,7 @@ export function registerListCommand(program: Command): void {
         let snapshots = Object.values(index.snapshots);
 
         if (snapshots.length === 0) {
-          info('No snapshots yet. Create one with: vmc snapshot <name> --latest');
+          info('No snapshots yet. Create one with: cmv snapshot <name> --latest');
           return;
         }
 

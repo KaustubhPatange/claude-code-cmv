@@ -1,40 +1,40 @@
 import { error as displayError } from './display.js';
 
-export class VmcError extends Error {
+export class CmvError extends Error {
   constructor(
     public userMessage: string,
     message?: string
   ) {
     super(message || userMessage);
-    this.name = 'VmcError';
+    this.name = 'CmvError';
   }
 }
 
-export class SessionNotFoundError extends VmcError {
+export class SessionNotFoundError extends CmvError {
   constructor(sessionId: string) {
     super(`Session "${sessionId}" not found.`, `Session not found: ${sessionId}`);
     this.name = 'SessionNotFoundError';
   }
 }
 
-export class SnapshotNotFoundError extends VmcError {
+export class SnapshotNotFoundError extends CmvError {
   constructor(name: string) {
     super(`Snapshot "${name}" not found.`, `Snapshot not found: ${name}`);
     this.name = 'SnapshotNotFoundError';
   }
 }
 
-export class ClaudeCliNotFoundError extends VmcError {
+export class ClaudeCliNotFoundError extends CmvError {
   constructor() {
     super(
-      'Claude CLI not found. Set path with: vmc config claude_cli_path <path>',
+      'Claude CLI not found. Set path with: cmv config claude_cli_path <path>',
       'Claude CLI not found in PATH'
     );
     this.name = 'ClaudeCliNotFoundError';
   }
 }
 
-export class ClaudeStorageNotFoundError extends VmcError {
+export class ClaudeStorageNotFoundError extends CmvError {
   constructor() {
     super(
       'Claude Code not found. Is it installed? Expected ~/.claude/ directory.',
@@ -44,7 +44,7 @@ export class ClaudeStorageNotFoundError extends VmcError {
   }
 }
 
-export class NoSessionsError extends VmcError {
+export class NoSessionsError extends CmvError {
   constructor() {
     super(
       'No sessions found. Start a Claude Code session first.',
@@ -56,10 +56,10 @@ export class NoSessionsError extends VmcError {
 
 /**
  * Global error handler for CLI commands.
- * Shows userMessage to user; full stack only with VMC_DEBUG=1.
+ * Shows userMessage to user; full stack only with CMV_DEBUG=1.
  */
 export function handleError(err: unknown): never {
-  if (err instanceof VmcError) {
+  if (err instanceof CmvError) {
     displayError(err.userMessage);
   } else if (err instanceof Error) {
     displayError(err.message);
@@ -67,7 +67,7 @@ export function handleError(err: unknown): never {
     displayError(String(err));
   }
 
-  if (process.env['VMC_DEBUG'] === '1' && err instanceof Error) {
+  if (process.env['CMV_DEBUG'] === '1' && err instanceof Error) {
     console.error('\nDebug stack trace:');
     console.error(err.stack);
   }

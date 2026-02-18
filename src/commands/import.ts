@@ -7,7 +7,7 @@ import type { ImportOptions } from '../types/index.js';
 export function registerImportCommand(program: Command): void {
   program
     .command('import <path>')
-    .description('Import snapshot from portable .vmc file')
+    .description('Import snapshot from portable .cmv file')
     .option('--rename <name>', 'Rename snapshot if name conflicts')
     .option('--force', 'Overwrite existing snapshot with same name')
     .action(async (filePath: string, opts: ImportOptions) => {

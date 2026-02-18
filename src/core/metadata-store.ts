@@ -2,29 +2,29 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as crypto from 'node:crypto';
-import { getVmcDir, getVmcSnapshotsDir, getVmcIndexPath, getVmcConfigPath } from '../utils/paths.js';
-import type { VmcIndex, VmcSnapshot, VmcConfig } from '../types/index.js';
+import { getCmvDir, getCmvSnapshotsDir, getCmvIndexPath, getCmvConfigPath } from '../utils/paths.js';
+import type { CmvIndex, CmvSnapshot, CmvConfig } from '../types/index.js';
 
-const VMC_VERSION = '1.0.0';
+const CMV_VERSION = '1.0.0';
 
 /**
- * Initialize VMC storage on first use.
- * Creates ~/.vmc/, ~/.vmc/snapshots/, and empty index.json if they don't exist.
+ * Initialize CMV storage on first use.
+ * Creates ~/.cmv/, ~/.cmv/snapshots/, and empty index.json if they don't exist.
  */
 export async function initialize(): Promise<void> {
-  const vmcDir = getVmcDir();
-  const snapshotsDir = getVmcSnapshotsDir();
-  const indexPath = getVmcIndexPath();
+  const cmvDir = getCmvDir();
+  const snapshotsDir = getCmvSnapshotsDir();
+  const indexPath = getCmvIndexPath();
 
-  await fs.mkdir(vmcDir, { recursive: true });
+  await fs.mkdir(cmvDir, { recursive: true });
   await fs.mkdir(snapshotsDir, { recursive: true });
 
   try {
     await fs.access(indexPath);
   } catch {
     // Index doesn't exist, create empty one
-    const emptyIndex: VmcIndex = {
-      version: VMC_VERSION,
+    const emptyIndex: CmvIndex = {
+      version: CMV_VERSION,
       snapshots: {},
     };
     await atomicWrite(indexPath, JSON.stringify(emptyIndex, null, 2));
@@ -32,30 +32,30 @@ export async function initialize(): Promise<void> {
 }
 
 /**
- * Read the VMC index.
+ * Read the CMV index.
  */
-export async function readIndex(): Promise<VmcIndex> {
-  const indexPath = getVmcIndexPath();
+export async function readIndex(): Promise<CmvIndex> {
+  const indexPath = getCmvIndexPath();
   try {
     const raw = await fs.readFile(indexPath, 'utf-8');
-    return JSON.parse(raw) as VmcIndex;
+    return JSON.parse(raw) as CmvIndex;
   } catch {
-    return { version: VMC_VERSION, snapshots: {} };
+    return { version: CMV_VERSION, snapshots: {} };
   }
 }
 
 /**
- * Write the VMC index atomically.
+ * Write the CMV index atomically.
  */
-export async function writeIndex(index: VmcIndex): Promise<void> {
-  const indexPath = getVmcIndexPath();
+export async function writeIndex(index: CmvIndex): Promise<void> {
+  const indexPath = getCmvIndexPath();
   await atomicWrite(indexPath, JSON.stringify(index, null, 2));
 }
 
 /**
  * Get a snapshot by name.
  */
-export async function getSnapshot(name: string): Promise<VmcSnapshot | null> {
+export async function getSnapshot(name: string): Promise<CmvSnapshot | null> {
   const index = await readIndex();
   return index.snapshots[name] || null;
 }
@@ -63,7 +63,7 @@ export async function getSnapshot(name: string): Promise<VmcSnapshot | null> {
 /**
  * Add a snapshot to the index.
  */
-export async function addSnapshot(snapshot: VmcSnapshot): Promise<void> {
+export async function addSnapshot(snapshot: CmvSnapshot): Promise<void> {
   const index = await readIndex();
   index.snapshots[snapshot.name] = snapshot;
   await writeIndex(index);
@@ -138,31 +138,31 @@ export async function validateSnapshotName(name: string): Promise<{ valid: boole
 }
 
 /**
- * Read VMC config.
+ * Read CMV config.
  */
-export async function readConfig(): Promise<VmcConfig> {
-  const configPath = getVmcConfigPath();
+export async function readConfig(): Promise<CmvConfig> {
+  const configPath = getCmvConfigPath();
   try {
     const raw = await fs.readFile(configPath, 'utf-8');
-    return JSON.parse(raw) as VmcConfig;
+    return JSON.parse(raw) as CmvConfig;
   } catch {
     return {};
   }
 }
 
 /**
- * Write VMC config atomically.
+ * Write CMV config atomically.
  */
-export async function writeConfig(config: VmcConfig): Promise<void> {
-  const configPath = getVmcConfigPath();
+export async function writeConfig(config: CmvConfig): Promise<void> {
+  const configPath = getCmvConfigPath();
   await atomicWrite(configPath, JSON.stringify(config, null, 2));
 }
 
 /**
  * Get the total size of a snapshot's session files in bytes.
  */
-export async function getSnapshotSize(snapshot: VmcSnapshot): Promise<number> {
-  const snapshotDir = path.join(getVmcSnapshotsDir(), snapshot.snapshot_dir);
+export async function getSnapshotSize(snapshot: CmvSnapshot): Promise<number> {
+  const snapshotDir = path.join(getCmvSnapshotsDir(), snapshot.snapshot_dir);
   let totalSize = 0;
   try {
     const sessionDir = path.join(snapshotDir, 'session');

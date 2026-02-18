@@ -16,7 +16,7 @@
       "Bash(npx tsc:*)",
       "Bash(node dist/index.js:*)",
       "Bash(npm link:*)",
-      "Bash(vmc:*)",
+      "Bash(cmv:*)",
       "Bash(npm root:*)",
       "Bash(export PATH=\"/c/Program Files/nodejs:/c/Users/yasin/AppData/Roaming/npm:$PATH\")",
       "Read(//c/Program Files/nodejs/**)",
@@ -43,7 +43,8 @@
       "Bash(\"C:/Program Files/nodejs/npm.cmd\" install --prefix d:/VMC ink@^5.0.0 react@^18.0.0 @inkjs/ui@^2.0.0)",
       "Bash(\"C:/Program Files/nodejs/npm.cmd\" install --prefix d:/VMC -D @types/react@^18.0.0)",
       "Bash(\"C:/Program Files/nodejs/npx.cmd\" --prefix d:/VMC tsc --project d:/VMC/tsconfig.json --noEmit)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm unlink:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\yasin\\.claude\\projects\\d--hiddenstate"

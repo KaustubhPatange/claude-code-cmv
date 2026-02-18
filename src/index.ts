@@ -17,8 +17,8 @@ import { registerDashboardCommand } from './commands/dashboard.js';
 const program = new Command();
 
 program
-  .name('vmc')
-  .description('Virtual Memory Contextualization — git-like snapshots and branching for Claude Code sessions')
+  .name('cmv')
+  .description('Contextual Memory Virtualisation — git-like snapshots and branching for Claude Code sessions')
   .version('0.1.0');
 
 // Register all commands

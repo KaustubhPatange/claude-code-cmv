@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { listAllSessions } from '../../core/session-reader.js';
 import { readIndex } from '../../core/metadata-store.js';
 import { buildTree } from '../../core/tree-builder.js';
-import type { ClaudeSessionEntry, TreeNode, VmcIndex } from '../../types/index.js';
+import type { ClaudeSessionEntry, TreeNode, CmvIndex } from '../../types/index.js';
 
 export interface ProjectInfo {
   path: string;            // human-readable project path
@@ -13,7 +13,7 @@ export interface ProjectInfo {
 
 export interface ProjectsState {
   projects: ProjectInfo[];
-  index: VmcIndex | null;
+  index: CmvIndex | null;
   allRoots: TreeNode[];
   loading: boolean;
   error: string | null;
@@ -22,7 +22,7 @@ export interface ProjectsState {
 
 export function useProjects(): ProjectsState {
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
-  const [index, setIndex] = useState<VmcIndex | null>(null);
+  const [index, setIndex] = useState<CmvIndex | null>(null);
   const [allRoots, setAllRoots] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

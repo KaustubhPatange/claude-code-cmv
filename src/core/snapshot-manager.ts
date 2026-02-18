@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { getVmcSnapshotsDir } from '../utils/paths.js';
+import { getCmvSnapshotsDir } from '../utils/paths.js';
 import { generateSnapshotId } from '../utils/id.js';
 import {
   findSession,
@@ -15,9 +15,9 @@ import {
   addSnapshot,
   getSnapshot,
 } from './metadata-store.js';
-import type { VmcSnapshot, VmcSnapshotMeta } from '../types/index.js';
+import type { CmvSnapshot, CmvSnapshotMeta } from '../types/index.js';
 
-const VMC_VERSION = '1.0.0';
+const CMV_VERSION = '1.0.0';
 
 export interface CreateSnapshotParams {
   name: string;
@@ -28,7 +28,7 @@ export interface CreateSnapshotParams {
 }
 
 export interface CreateSnapshotResult {
-  snapshot: VmcSnapshot;
+  snapshot: CmvSnapshot;
   warnings: string[];
 }
 
@@ -38,7 +38,7 @@ export interface CreateSnapshotResult {
 export async function createSnapshot(params: CreateSnapshotParams): Promise<CreateSnapshotResult> {
   const warnings: string[] = [];
 
-  // Initialize VMC storage
+  // Initialize CMV storage
   await initialize();
 
   // Validate name
@@ -74,13 +74,13 @@ export async function createSnapshot(params: CreateSnapshotParams): Promise<Crea
     warnings.push(
       'Session has no conversation messages (only file tracking data). ' +
       'Branching from this snapshot will not work. ' +
-      'Use `vmc sessions` to find a session with messages > 0.'
+      'Use `cmv sessions` to find a session with messages > 0.'
     );
   }
 
   // Generate snapshot ID and create directory
   const snapshotId = generateSnapshotId();
-  const snapshotDir = path.join(getVmcSnapshotsDir(), snapshotId);
+  const snapshotDir = path.join(getCmvSnapshotsDir(), snapshotId);
   const sessionDir = path.join(snapshotDir, 'session');
   await fs.mkdir(sessionDir, { recursive: true });
 
@@ -117,7 +117,7 @@ export async function createSnapshot(params: CreateSnapshotParams): Promise<Crea
   const now = new Date().toISOString();
 
   // Create snapshot record
-  const snapshot: VmcSnapshot = {
+  const snapshot: CmvSnapshot = {
     id: snapshotId,
     name: params.name,
     description: params.description || '',
@@ -134,8 +134,8 @@ export async function createSnapshot(params: CreateSnapshotParams): Promise<Crea
   };
 
   // Write meta.json (for portability)
-  const meta: VmcSnapshotMeta = {
-    vmc_version: VMC_VERSION,
+  const meta: CmvSnapshotMeta = {
+    cmv_version: CMV_VERSION,
     snapshot_id: snapshotId,
     name: params.name,
     description: params.description || '',
@@ -170,7 +170,7 @@ export async function deleteSnapshot(name: string): Promise<void> {
   }
 
   // Remove snapshot directory
-  const snapshotDir = path.join(getVmcSnapshotsDir(), snapshot.snapshot_dir);
+  const snapshotDir = path.join(getCmvSnapshotsDir(), snapshot.snapshot_dir);
   await fs.rm(snapshotDir, { recursive: true, force: true });
 
   // Remove from index

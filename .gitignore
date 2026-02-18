@@ -3,4 +3,4 @@ dist/
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
-*.vmc
+*.cmv

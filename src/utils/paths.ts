@@ -17,31 +17,31 @@ export function getClaudeBaseDir(): string {
 }
 
 /**
- * Get the VMC storage directory: ~/.vmc/
+ * Get the CMV storage directory: ~/.cmv/
  */
-export function getVmcDir(): string {
-  return path.join(os.homedir(), '.vmc');
+export function getCmvDir(): string {
+  return path.join(os.homedir(), '.cmv');
 }
 
 /**
- * Get the VMC snapshots directory: ~/.vmc/snapshots/
+ * Get the CMV snapshots directory: ~/.cmv/snapshots/
  */
-export function getVmcSnapshotsDir(): string {
-  return path.join(getVmcDir(), 'snapshots');
+export function getCmvSnapshotsDir(): string {
+  return path.join(getCmvDir(), 'snapshots');
 }
 
 /**
- * Get the VMC index file path: ~/.vmc/index.json
+ * Get the CMV index file path: ~/.cmv/index.json
  */
-export function getVmcIndexPath(): string {
-  return path.join(getVmcDir(), 'index.json');
+export function getCmvIndexPath(): string {
+  return path.join(getCmvDir(), 'index.json');
 }
 
 /**
- * Get the VMC config file path: ~/.vmc/config.json
+ * Get the CMV config file path: ~/.cmv/config.json
  */
-export function getVmcConfigPath(): string {
-  return path.join(getVmcDir(), 'config.json');
+export function getCmvConfigPath(): string {
+  return path.join(getCmvDir(), 'config.json');
 }
 
 /**

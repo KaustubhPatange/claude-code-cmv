@@ -7,11 +7,11 @@ import type { SessionsOptions } from '../types/index.js';
 import chalk from 'chalk';
 
 /**
- * Build lookup maps from VMC index:
+ * Build lookup maps from CMV index:
  *   sessionId → "branch: branchName (from snapshotName)"
  *   sessionId → "snap: snapshotName"
  */
-async function buildVmcLookup(): Promise<Map<string, string>> {
+async function buildCmvLookup(): Promise<Map<string, string>> {
   const lookup = new Map<string, string>();
   try {
     const index = await readIndex();
@@ -24,7 +24,7 @@ async function buildVmcLookup(): Promise<Map<string, string>> {
       }
     }
   } catch {
-    // VMC index doesn't exist yet — no annotations
+    // CMV index doesn't exist yet — no annotations
   }
   return lookup;
 }
@@ -64,8 +64,8 @@ export function registerSessionsCommand(program: Command): void {
           sessions.sort((a, b) => (b.messageCount || 0) - (a.messageCount || 0));
         }
 
-        // Build VMC annotation lookup
-        const vmcLookup = await buildVmcLookup();
+        // Build CMV annotation lookup
+        const cmvLookup = await buildCmvLookup();
 
         if (opts.json) {
           console.log(JSON.stringify(sessions.map(s => ({
@@ -75,32 +75,32 @@ export function registerSessionsCommand(program: Command): void {
             messageCount: s.messageCount,
             created: s.created,
             modified: s.modified,
-            vmc: vmcLookup.get(s.sessionId) || null,
+            cmv: cmvLookup.get(s.sessionId) || null,
           })), null, 2));
           return;
         }
 
         // Table output
-        const headers = ['Session ID', 'Project', 'Msgs', 'Modified', 'VMC', 'Summary'];
+        const headers = ['Session ID', 'Project', 'Msgs', 'Modified', 'CMV', 'Summary'];
         const rows = sessions.map(s => [
           s.sessionId.substring(0, 8) + '…',
           truncate(s.projectPath || '—', 20),
           String(s.messageCount ?? '—'),
           s.modified ? formatRelativeTime(s.modified) : '—',
-          truncate(vmcLookup.get(s.sessionId) || '', 20),
+          truncate(cmvLookup.get(s.sessionId) || '', 20),
           truncate(s.summary || s.firstPrompt || '—', 35),
         ]);
 
         const hiddenNote = hiddenCount > 0 ? dim(` (${hiddenCount} empty hidden, use --all)`) : '';
         console.log(chalk.bold(`Found ${sessions.length} session(s):`) + hiddenNote + '\n');
         console.log(formatTable(headers, rows));
-        console.log(dim('\nUse full session ID with: vmc snapshot <name> --session <id>'));
+        console.log(dim('\nUse full session ID with: cmv snapshot <name> --session <id>'));
 
         // Also print full IDs for easy copy
         console.log(dim('\nFull session IDs:'));
         for (const s of sessions) {
-          const vmcTag = vmcLookup.get(s.sessionId);
-          const suffix = vmcTag ? `  ${vmcTag}` : '';
+          const cmvTag = cmvLookup.get(s.sessionId);
+          const suffix = cmvTag ? `  ${cmvTag}` : '';
           console.log(dim(`  ${s.sessionId}  ${truncate(s.projectPath || '', 30)}${suffix}`));
         }
       } catch (err) {

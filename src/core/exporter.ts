@@ -3,11 +3,11 @@ import * as path from 'node:path';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import * as zlib from 'node:zlib';
-import { getVmcSnapshotsDir } from '../utils/paths.js';
+import { getCmvSnapshotsDir } from '../utils/paths.js';
 import { getSnapshot } from './metadata-store.js';
 
 /**
- * Export a snapshot as a .vmc file (tar.gz containing meta.json + session/*.jsonl).
+ * Export a snapshot as a .cmv file (tar.gz containing meta.json + session/*.jsonl).
  * Branch data is excluded from export (branches reference local session IDs).
  */
 export async function exportSnapshot(name: string, outputPath?: string): Promise<string> {
@@ -16,8 +16,8 @@ export async function exportSnapshot(name: string, outputPath?: string): Promise
     throw new Error(`Snapshot "${name}" not found.`);
   }
 
-  const snapshotDir = path.join(getVmcSnapshotsDir(), snapshot.snapshot_dir);
-  const outFile = outputPath || path.join(process.cwd(), `${name}.vmc`);
+  const snapshotDir = path.join(getCmvSnapshotsDir(), snapshot.snapshot_dir);
+  const outFile = outputPath || path.join(process.cwd(), `${name}.cmv`);
 
   // Build a simple tar archive manually (to avoid external dependency)
   const files = await collectFiles(snapshotDir, snapshotDir);

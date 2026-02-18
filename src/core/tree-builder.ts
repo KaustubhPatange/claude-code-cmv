@@ -1,5 +1,5 @@
 import { readIndex } from './metadata-store.js';
-import type { VmcSnapshot, VmcBranch, TreeNode } from '../types/index.js';
+import type { CmvSnapshot, CmvBranch, TreeNode } from '../types/index.js';
 import chalk from 'chalk';
 import { formatRelativeTime } from '../utils/display.js';
 

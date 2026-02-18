@@ -7,8 +7,8 @@ import type { ExportOptions } from '../types/index.js';
 export function registerExportCommand(program: Command): void {
   program
     .command('export <name>')
-    .description('Export snapshot to portable .vmc file')
-    .option('-o, --output <path>', 'Output file path (default: ./<name>.vmc)')
+    .description('Export snapshot to portable .cmv file')
+    .option('-o, --output <path>', 'Output file path (default: ./<name>.cmv)')
     .action(async (name: string, opts: ExportOptions) => {
       try {
         const outPath = await exportSnapshot(name, opts.output);

@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { getSnapshot, addBranch, removeBranch, readConfig } from './metadata-store.js';
 import { generateUUID } from '../utils/id.js';
 import { spawnClaudeInteractive, getClaudeCliPath } from '../utils/process.js';
-import { getClaudeProjectsDir, getVmcSnapshotsDir } from '../utils/paths.js';
+import { getClaudeProjectsDir, getCmvSnapshotsDir } from '../utils/paths.js';
 
 export interface BranchParams {
   snapshotName: string;
@@ -33,9 +33,9 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
     throw new Error(`Snapshot "${params.snapshotName}" not found.`);
   }
 
-  // Find the snapshot's JSONL file in VMC storage
+  // Find the snapshot's JSONL file in CMV storage
   const snapshotJsonlPath = path.join(
-    getVmcSnapshotsDir(),
+    getCmvSnapshotsDir(),
     snapshot.snapshot_dir,
     'session',
     `${snapshot.source_session_id}.jsonl`
@@ -57,9 +57,9 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
       `Snapshot "${params.snapshotName}" has no conversation messages — only file tracking data. ` +
       `Claude requires conversation content to resume a session.\n` +
       `Delete this snapshot and re-create from a session with messages > 0:\n` +
-      `  vmc delete "${params.snapshotName}"\n` +
-      `  vmc sessions  # find a session with conversation messages\n` +
-      `  vmc snapshot "${params.snapshotName}" --session <id>`
+      `  cmv delete "${params.snapshotName}"\n` +
+      `  cmv sessions  # find a session with conversation messages\n` +
+      `  cmv snapshot "${params.snapshotName}" --session <id>`
     );
   }
 
@@ -117,7 +117,7 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
     decodedProjectPath
   );
 
-  // Record the branch in VMC's index
+  // Record the branch in CMV's index
   await addBranch(params.snapshotName, {
     name: branchName,
     forked_session_id: newSessionId,
@@ -164,7 +164,7 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
 /**
  * Delete a branch: remove its session file from the Claude project
  * directory, remove its sessions-index.json entry, and remove the
- * branch record from the VMC index.
+ * branch record from the CMV index.
  */
 export async function deleteBranch(snapshotName: string, branchName: string): Promise<void> {
   const snapshot = await getSnapshot(snapshotName);
@@ -196,7 +196,7 @@ export async function deleteBranch(snapshotName: string, branchName: string): Pr
     await removeFromSessionsIndex(projectDir, branch.forked_session_id);
   }
 
-  // Remove from VMC index
+  // Remove from CMV index
   await removeBranch(snapshotName, branchName);
 }
 
@@ -354,7 +354,7 @@ async function updateSessionsIndex(
     sessionId,
     fullPath: jsonlPath,
     fileMtime: Math.round(stat.mtimeMs),
-    firstPrompt: '(VMC branch)',
+    firstPrompt: '(CMV branch)',
     messageCount: 0,
     created: now,
     modified: now,

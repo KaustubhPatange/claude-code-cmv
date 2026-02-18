@@ -1,12 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as zlib from 'node:zlib';
-import { getVmcSnapshotsDir } from '../utils/paths.js';
+import { getCmvSnapshotsDir } from '../utils/paths.js';
 import { initialize, getSnapshot, addSnapshot, validateSnapshotName } from './metadata-store.js';
 import { generateSnapshotId } from '../utils/id.js';
-import type { VmcSnapshot, VmcSnapshotMeta } from '../types/index.js';
+import type { CmvSnapshot, CmvSnapshotMeta } from '../types/index.js';
 
-const VMC_VERSION = '1.0.0';
+const CMV_VERSION = '1.0.0';
 
 export interface ImportOptions {
   rename?: string;
@@ -20,7 +20,7 @@ export interface ImportResult {
 }
 
 /**
- * Import a snapshot from a .vmc file.
+ * Import a snapshot from a .cmv file.
  */
 export async function importSnapshot(filePath: string, options: ImportOptions = {}): Promise<ImportResult> {
   const warnings: string[] = [];
@@ -37,10 +37,10 @@ export async function importSnapshot(filePath: string, options: ImportOptions = 
   // Find meta.json
   const metaEntry = entries.find(e => e.path === 'meta.json');
   if (!metaEntry) {
-    throw new Error('Invalid .vmc file: missing meta.json');
+    throw new Error('Invalid .cmv file: missing meta.json');
   }
 
-  const meta: VmcSnapshotMeta = JSON.parse(metaEntry.content.toString('utf-8'));
+  const meta: CmvSnapshotMeta = JSON.parse(metaEntry.content.toString('utf-8'));
 
   // Determine name
   const name = options.rename || meta.name;
@@ -55,7 +55,7 @@ export async function importSnapshot(filePath: string, options: ImportOptions = 
 
   if (existing && options.force) {
     // Remove existing snapshot directory
-    const existingDir = path.join(getVmcSnapshotsDir(), existing.snapshot_dir);
+    const existingDir = path.join(getCmvSnapshotsDir(), existing.snapshot_dir);
     await fs.rm(existingDir, { recursive: true, force: true });
   }
 
@@ -69,7 +69,7 @@ export async function importSnapshot(filePath: string, options: ImportOptions = 
 
   // Generate new snapshot ID
   const snapshotId = generateSnapshotId();
-  const snapshotDir = path.join(getVmcSnapshotsDir(), snapshotId);
+  const snapshotDir = path.join(getCmvSnapshotsDir(), snapshotId);
 
   // Extract files to snapshot directory
   for (const entry of entries) {
@@ -89,12 +89,12 @@ export async function importSnapshot(filePath: string, options: ImportOptions = 
   }
 
   // Version compatibility check
-  if (meta.vmc_version && meta.vmc_version !== VMC_VERSION) {
-    warnings.push(`Snapshot was created with VMC ${meta.vmc_version} (current: ${VMC_VERSION}).`);
+  if (meta.cmv_version && meta.cmv_version !== CMV_VERSION) {
+    warnings.push(`Snapshot was created with CMV ${meta.cmv_version} (current: ${CMV_VERSION}).`);
   }
 
   // Create snapshot record
-  const snapshot: VmcSnapshot = {
+  const snapshot: CmvSnapshot = {
     id: snapshotId,
     name,
     description: meta.description || '',

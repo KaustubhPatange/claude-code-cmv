@@ -1,10 +1,10 @@
 {
-  "name": "vmc",
+  "name": "cmv",
   "version": "0.1.0",
-  "description": "Virtual Memory Contextualization — git-like snapshot and branching for Claude Code sessions",
+  "description": "Contextual Memory Virtualisation — git-like snapshot and branching for Claude Code sessions",
   "type": "module",
   "bin": {
-    "vmc": "./dist/index.js"
+    "cmv": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

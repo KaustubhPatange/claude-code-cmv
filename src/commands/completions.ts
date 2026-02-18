@@ -4,8 +4,8 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 
 const POWERSHELL_COMPLETION = `
-# VMC PowerShell Tab Completion
-Register-ArgumentCompleter -CommandName vmc -Native -ScriptBlock {
+# CMV PowerShell Tab Completion
+Register-ArgumentCompleter -CommandName cmv -Native -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
 
     $commands = @(
@@ -42,7 +42,7 @@ Register-ArgumentCompleter -CommandName vmc -Native -ScriptBlock {
     $prevToken = if ($tokens.Length -gt 2) { $tokens[$tokens.Length - 2] } else { '' }
     if ($prevToken -in @('--session', '-s')) {
         try {
-            $sessions = (vmc sessions --json 2>$null | ConvertFrom-Json) | ForEach-Object { $_.sessionId }
+            $sessions = (cmv sessions --json 2>$null | ConvertFrom-Json) | ForEach-Object { $_.sessionId }
             $sessions | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                 [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
             }
@@ -50,10 +50,10 @@ Register-ArgumentCompleter -CommandName vmc -Native -ScriptBlock {
         return
     }
 
-    # For commands that take snapshot names, complete from vmc list
+    # For commands that take snapshot names, complete from cmv list
     if ($currentCommand -in @('branch', 'info', 'delete', 'export') -and $tokens.Length -eq 3) {
         try {
-            $snapshots = (vmc list --json 2>$null | ConvertFrom-Json) | ForEach-Object { $_.name }
+            $snapshots = (cmv list --json 2>$null | ConvertFrom-Json) | ForEach-Object { $_.name }
             $snapshots | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                 [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
             }
@@ -68,8 +68,8 @@ Register-ArgumentCompleter -CommandName vmc -Native -ScriptBlock {
 `.trim();
 
 const BASH_COMPLETION = `
-# VMC Bash Tab Completion
-_vmc_completions() {
+# CMV Bash Tab Completion
+_cmv_completions() {
     local cur prev commands
     COMPREPLY=()
     cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -83,7 +83,7 @@ _vmc_completions() {
 
     # Complete session IDs after --session or -s
     if [ "$prev" = "--session" ] || [ "$prev" = "-s" ]; then
-        local ids=$(vmc sessions --json 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
+        local ids=$(cmv sessions --json 2>/dev/null | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
         COMPREPLY=( $(compgen -W "$ids" -- "$cur") )
         return
     fi
@@ -100,7 +100,7 @@ _vmc_completions() {
         import)    COMPREPLY=( $(compgen -W "--rename --force" -- "$cur") ) ;;
     esac
 }
-complete -F _vmc_completions vmc
+complete -F _cmv_completions cmv
 `.trim();
 
 export function registerCompletionsCommand(program: Command): void {
@@ -148,8 +148,8 @@ async function installCompletions(shell: string): Promise<void> {
       // Check if already installed
       try {
         const existing = await fs.readFile(profilePath, 'utf-8');
-        if (existing.includes('VMC PowerShell Tab Completion')) {
-          console.log('VMC completions already installed in $PROFILE');
+        if (existing.includes('CMV PowerShell Tab Completion')) {
+          console.log('CMV completions already installed in $PROFILE');
           return;
         }
       } catch {
@@ -166,8 +166,8 @@ async function installCompletions(shell: string): Promise<void> {
 
       try {
         const existing = await fs.readFile(bashrc, 'utf-8');
-        if (existing.includes('VMC Bash Tab Completion')) {
-          console.log('VMC completions already installed in ~/.bashrc');
+        if (existing.includes('CMV Bash Tab Completion')) {
+          console.log('CMV completions already installed in ~/.bashrc');
           return;
         }
       } catch {

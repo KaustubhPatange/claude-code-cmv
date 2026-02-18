@@ -23,16 +23,16 @@ export interface ClaudeSessionsIndex {
 }
 
 // ============================================================
-// VMC Types
+// CMV Types
 // ============================================================
 
-export interface VmcBranch {
+export interface CmvBranch {
   name: string;
   forked_session_id: string;
   created_at: string;
 }
 
-export interface VmcSnapshot {
+export interface CmvSnapshot {
   id: string;
   name: string;
   description: string;
@@ -45,16 +45,16 @@ export interface VmcSnapshot {
   tags: string[];
   parent_snapshot: string | null;
   session_active_at_capture: boolean;
-  branches: VmcBranch[];
+  branches: CmvBranch[];
 }
 
-export interface VmcIndex {
+export interface CmvIndex {
   version: string;
-  snapshots: Record<string, VmcSnapshot>;
+  snapshots: Record<string, CmvSnapshot>;
 }
 
-export interface VmcSnapshotMeta {
-  vmc_version: string;
+export interface CmvSnapshotMeta {
+  cmv_version: string;
   snapshot_id: string;
   name: string;
   description: string;
@@ -67,7 +67,7 @@ export interface VmcSnapshotMeta {
   session_file_format: string;
 }
 
-export interface VmcConfig {
+export interface CmvConfig {
   claude_cli_path?: string;
   default_project?: string;
 }
@@ -75,8 +75,8 @@ export interface VmcConfig {
 export interface TreeNode {
   type: 'snapshot' | 'branch' | 'session' | 'separator';
   name: string;
-  snapshot?: VmcSnapshot;
-  branch?: VmcBranch;
+  snapshot?: CmvSnapshot;
+  branch?: CmvBranch;
   session?: ClaudeSessionEntry;
   children: TreeNode[];
 }

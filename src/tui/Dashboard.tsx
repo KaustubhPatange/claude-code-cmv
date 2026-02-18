@@ -91,7 +91,7 @@ export function Dashboard({ onExit }: DashboardProps) {
   const treeFocused = focus === 'tree' && isNavigating;
   const nav = useTreeNavigation(combinedRoots, treeFocused);
 
-  // Initialize VMC storage on mount
+  // Initialize CMV storage on mount
   useEffect(() => {
     initialize().then(() => setInitialized(true));
   }, []);

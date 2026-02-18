@@ -16,9 +16,9 @@ export function ImportPrompt({ onSubmit, onCancel }: ImportPromptProps) {
 
   return (
     <Box borderStyle="single" borderColor="yellow" paddingX={1}>
-      <Text color="yellow">Import path (.vmc file): </Text>
+      <Text color="yellow">Import path (.cmv file): </Text>
       <TextInput
-        placeholder="./snapshot.vmc"
+        placeholder="./snapshot.cmv"
         onSubmit={(value) => {
           const trimmed = value.trim();
           if (trimmed) onSubmit(trimmed);

@@ -2,14 +2,14 @@ import { Command } from 'commander';
 import { readConfig, writeConfig, initialize } from '../core/metadata-store.js';
 import { success, info, dim } from '../utils/display.js';
 import { handleError } from '../utils/errors.js';
-import type { VmcConfig } from '../types/index.js';
+import type { CmvConfig } from '../types/index.js';
 
-const VALID_KEYS: (keyof VmcConfig)[] = ['claude_cli_path', 'default_project'];
+const VALID_KEYS: (keyof CmvConfig)[] = ['claude_cli_path', 'default_project'];
 
 export function registerConfigCommand(program: Command): void {
   program
     .command('config [key] [value]')
-    .description('View or set VMC configuration')
+    .description('View or set CMV configuration')
     .action(async (key?: string, value?: string) => {
       try {
         await initialize();
@@ -17,7 +17,7 @@ export function registerConfigCommand(program: Command): void {
 
         if (!key) {
           // Show all config
-          info('VMC Configuration:');
+          info('CMV Configuration:');
           if (Object.keys(config).length === 0) {
             console.log(dim('  (no configuration set)'));
           } else {
@@ -29,14 +29,14 @@ export function registerConfigCommand(program: Command): void {
           return;
         }
 
-        if (!VALID_KEYS.includes(key as keyof VmcConfig)) {
+        if (!VALID_KEYS.includes(key as keyof CmvConfig)) {
           console.error(`Unknown config key: "${key}". Valid keys: ${VALID_KEYS.join(', ')}`);
           process.exit(1);
         }
 
         if (!value) {
           // Show single value
-          const val = config[key as keyof VmcConfig];
+          const val = config[key as keyof CmvConfig];
           if (val !== undefined) {
             console.log(val);
           } else {
