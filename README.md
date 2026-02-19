@@ -1,483 +1,317 @@
-# CMV — Contextual Memory Virtualisation
+# Claude Code Contextual Memory Virtualisation (CMV)
 
-Save, name, and branch from Claude Code sessions. Stop re-explaining your codebase.
+Like virtual memory lets an OS use more RAM than it physically has, CMV lets Claude Code use more context than fits in one session — by snapshotting, branching, and trimming the understanding your sessions build up.
 
+![CMV demo](assets/demo.gif)
 ## The Problem
 
-You spend 30 minutes having Claude analyze your codebase. That context is now trapped in one session. You can't save it, branch from it, or reuse it. When the session fills up or you want to try a different approach, you start over.
+Every conversation with Claude builds up state. Not just chat history — actual understanding. Architecture mapped, tradeoffs weighed, decisions made, conventions learned. After 30 minutes of deep work (sometimes less!), Claude has a mental model of your whole codebase sitting in its context window. That took real time and real tokens to build.
 
-CMV fixes this. Snapshot a session, branch from it unlimited times, each branch gets the full conversation history.
+And then it's just... gone. The session context fills up, you run `/compact`, and the model condenses itself into a few sentences. Next session, you start from scratch.
 
-## Install
+Contextual Memory Virtualisation (CMV) treats that accumulated understanding as something worth keeping around. Named snapshots you can return to, branch from, and trim down — basically version control for context.
 
-**Requirements:** Node.js 18+ and [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+- **Snapshot** captures context state at a point in time (think `git commit`)
+- **Branch** forks into a new independent session from that state (think `git checkout -b`)
+- **Trim** strips dead weight from context without losing any of the actual conversation (no git equivalent — this one's new)
+- **Tree** shows how your context evolved over time (think `git log --graph`)
 
-### Windows
-
-Install Node.js (if not already installed):
-
-```powershell
-winget install OpenJS.NodeJS.LTS
-```
-
-If PowerShell blocks scripts, run this once:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
-
-Install CMV:
-
-```powershell
-git clone https://github.com/CosmoNaught/cmv.git
-cd cmv
-npm install
-npm run build
-npm link
-```
-
-Verify:
-
-```powershell
-cmv --help
-cmv sessions
-```
-
-> **`cmv` not found?** Close and reopen your terminal so it picks up the new PATH. If it still doesn't work, check that `%APPDATA%\npm` is on your PATH.
-
-### Linux
-
-Install Node.js 18+ using your package manager:
-
-<details>
-<summary><strong>Ubuntu / Debian</strong></summary>
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-sudo apt install -y nodejs
-```
-
-</details>
-
-<details>
-<summary><strong>Fedora / RHEL</strong></summary>
-
-```bash
-sudo dnf install -y nodejs
-```
-
-</details>
-
-<details>
-<summary><strong>Arch</strong></summary>
-
-```bash
-sudo pacman -S nodejs npm
-```
-
-</details>
-
-<details>
-<summary><strong>Any distro (nvm)</strong></summary>
-
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-source ~/.bashrc
-nvm install --lts
-```
-
-</details>
-
-Install CMV:
-
-```bash
-git clone https://github.com/CosmoNaught/cmv.git
-cd cmv
-npm install
-npm run build
-npm link
-```
-
-Verify:
-
-```bash
-cmv --help
-cmv sessions
-```
-
-> **Permission error on `npm link`?** Either use `sudo npm link`, or install Node via nvm (which doesn't need sudo for global packages).
->
-> **`cmv` not found?** Make sure `/usr/local/bin` is on your PATH. If you used nvm, run `source ~/.bashrc` first.
-
-### macOS
-
-Install Node.js (if not already installed):
-
-```bash
-brew install node
-```
-
-Or use [nvm](https://github.com/nvm-sh/nvm) if you prefer to manage Node versions.
-
-Install CMV:
-
-```bash
-git clone https://github.com/CosmoNaught/cmv.git
-cd cmv
-npm install
-npm run build
-npm link
-```
-
-Verify:
-
-```bash
-cmv --help
-cmv sessions
-```
-
+Build up context once, reuse it whenever you need it.
 ## Quick Start
 
 ```bash
-# Fastest way: launch the interactive dashboard
-cmv
+cmv                                                  # launch the TUI dashboard
+cmv sessions                                         # list Claude Code sessions
+cmv snapshot "analysis" --latest                     # commit context state
+cmv branch "analysis" --name "auth-work"             # fork — full history, fresh session
+cmv branch "analysis" --name "api-work"              # fork again — independent, same starting point
+cmv branch "analysis" --name "trimmed" --trim        # fork with cleanup — 50-70% smaller, nothing lost
+cmv tree                                             # view the history
+```
 
-# Or use individual commands:
+```
+analysis (snapshot, 2d ago, 82 msgs)
+├── auth-work (branch, 2d ago)
+├── api-work (branch, 1d ago)
+└── trimmed (branch, 1d ago)
+```
 
-# 1. See all your Claude Code sessions
-cmv sessions
+## Install
 
-# 2. Snapshot the most recent session
-cmv snapshot "my-analysis" --latest -d "Full codebase analysis"
+Requires [Node.js 18+](https://nodejs.org) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
-# 3. Branch from it (opens a new Claude session with full context)
-cmv branch "my-analysis" --name "try-refactor"
+### Linux
 
-# 4. Branch again — independent session, same starting point
-cmv branch "my-analysis" --name "try-rewrite"
+```bash
+# Node.js (if you don't have it)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+nvm install --lts
 
-# 5. See the tree
-cmv tree
+# CMV
+git clone https://github.com/CosmoNaught/cmv.git
+cd cmv
+npm install && npm run build
+npm link
+```
+
+> `cmv` not found? Try `sudo npm link`, or reopen your terminal if using nvm.
+
+### Windows
+
+```powershell
+# Node.js (if you don't have it)
+winget install OpenJS.NodeJS.LTS
+
+# CMV (reopen terminal after installing Node)
+git clone https://github.com/CosmoNaught/cmv.git
+cd cmv
+npm install && npm run build
+npm link
+```
+
+> `cmv` not found? Reopen your terminal. Check that `%APPDATA%\npm` is on your PATH.
+
+### macOS (untested as of 19/02/2025)
+
+```bash
+# Node.js (if you don't have it)
+brew install node
+
+# CMV
+git clone https://github.com/CosmoNaught/cmv.git
+cd cmv
+npm install && npm run build
+npm link
 ```
 
 ## Dashboard
 
-Run `cmv` with no arguments (or `cmv dashboard`) to launch the interactive TUI:
+`cmv` with no arguments launches a three-column Ranger-style TUI.
 
-```bash
-cmv
-```
-
-Three-column Ranger-style layout — projects, snapshots/sessions, and details:
-
-```
-┌─ Projects ────┬─ Snapshots / Sessions ─────┬─ Details ──────────────┐
-│ ▸ d:\CMV      │ ● codebase-analyzed    82m  │ Name: codebase-analyzed│
-│   d:\myproj   │   ├── implement-auth  (br)  │ Created:     2d ago    │
-│   ~/other     │   └── auth-designed    95m  │ Source:  7e616107…     │
-│               │ ── Sessions ──────────────  │ Messages:    82        │
-│               │   7e616107…  42m    3h ago  │ Size:        2.4 MB    │
-│               │   a1b2c3d4…  18m    1d ago  │ Tags:   architecture   │
-│               │                             │ Branches:    3         │
-├───────────────┴─────────────────────────────┴────────────────────────┤
-│ [b] Branch  [s] Snapshot  [d] Delete  [e] Export  [Tab] Switch [q] Q │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-**Key bindings:**
+![CMV dashboard](assets/sc.png)
 
 | Key | Action |
 |-----|--------|
-| `↑/↓` or `j/k` | Navigate within the focused pane |
-| `←/→` | Collapse/expand tree nodes |
-| `Tab` | Switch focus between Projects and Snapshots/Sessions |
-| `b` | Branch from selected snapshot (prompts for name) |
-| `s` | Snapshot selected session or latest (prompts for name) |
-| `d` | Delete selected snapshot or branch (asks confirmation) |
-| `e` | Export selected snapshot to `.cmv` file |
-| `i` | Import a `.cmv` file (prompts for path) |
-| `Enter` | Branch from selected snapshot and launch Claude |
-| `q` | Quit |
+| `b` | Branch from selected snapshot |
+| `t` | Trim branch — strips bloat, keeps conversation |
+| `s` | Snapshot selected session |
+| `d` | Delete snapshot or branch |
+| `e` / `i` | Export / import `.cmv` files |
+| `Enter` | Branch and launch Claude |
 
-The left column lists all Claude Code projects. The middle column shows snapshots and active sessions for the selected project. The right column shows details for the selected item. Selecting a session and pressing `s` snapshots that specific session. Selecting a branch and pressing `d` deletes it along with its session file. All actions use the same core functions as the CLI commands.
+Arrow keys or `j`/`k` to navigate. `Tab` switches panes. The detail pane shows a full context breakdown — what's eating your tokens and how much you can trim.
 
 ## Commands
 
-### `cmv dashboard`
-
-Launch the interactive TUI dashboard. Same as running `cmv` with no arguments.
-
-```bash
-cmv dashboard
-```
-
 ### `cmv sessions`
 
-List all Claude Code sessions CMV can find.
+List Claude Code sessions. Filter by project, sort by size, output as JSON.
 
 ```bash
-cmv sessions                        # all sessions, newest first
-cmv sessions -p myproject           # filter by project name
-cmv sessions --sort size            # sort by message count
-cmv sessions --all                  # include empty file-tracking sessions
-cmv sessions --json                 # JSON output
+cmv sessions -p myproject --sort size
 ```
-
-Empty sessions (file-tracking only, 0 messages) are hidden by default. Use `--all` to show them.
-
-Sessions that were snapshotted or branched via CMV are labeled in the **CMV** column (`snap: name` or `branch: name`).
-
-This is your starting point. Find the session ID you want to snapshot.
 
 ### `cmv snapshot <name>`
 
-Save a session's conversation state as a named snapshot.
+Commit context state. Copies the session JSONL to CMV storage with metadata. Doesn't touch the original session.
 
 ```bash
-# Snapshot a specific session (copy the ID from `cmv sessions`)
-cmv snapshot "codebase-analyzed" --session 7e616107-a7ea-4844-af46-f5b3cc145d15
-
-# Snapshot whatever session was most recently active
-cmv snapshot "codebase-analyzed" --latest
-
-# Add description and tags
-cmv snapshot "auth-designed" --latest -d "Auth architecture decided" -t "auth,design"
+cmv snapshot "analysis" --latest -d "Full codebase walkthrough"
 ```
-
-What happens: CMV copies the session's JSONL file to `~/.cmv/snapshots/` and records metadata. The original session is untouched.
 
 ### `cmv branch <snapshot>`
 
-Create a new Claude Code session forked from a snapshot. The new session has the full conversation history — Claude remembers everything.
+Fork from a snapshot. Creates a new session with the full conversation history. Same starting point, independent from there.
 
 ```bash
-# Branch and launch Claude immediately
-cmv branch "codebase-analyzed" --name "implement-auth"
-
-# Just create the session file, don't launch Claude
-cmv branch "codebase-analyzed" --name "implement-api" --skip-launch
-
-# Preview the command without doing anything
-cmv branch "codebase-analyzed" --dry-run
+cmv branch "analysis" --name "auth-work"
+cmv branch "analysis" --name "clean-start" --trim
+cmv branch "analysis" --name "later" --skip-launch
 ```
 
-Under the hood this copies the snapshot's JSONL to the Claude project directory with a new session ID, then runs `claude --resume <new-id>`.
+### `cmv trim`
+
+Snapshot, trim, and launch in one step. The "better `/compact`" workflow — exit the session, then:
+
+```bash
+cmv trim --latest
+```
+
+More on this [below](#trim).
 
 ### `cmv list`
 
-Show all snapshots.
+All snapshots. Filter by tag, sort by name or branch count.
 
 ```bash
-cmv list                            # all snapshots
-cmv list --tag auth                 # filter by tag
-cmv list --sort branches            # sort by branch count
-cmv list --sort name                # sort alphabetically
-cmv list --json                     # JSON output
+cmv list --tag auth --sort branches
 ```
 
 ### `cmv tree`
 
-Show the snapshot/branch hierarchy.
-
-```bash
-cmv tree
-```
-
-```
-codebase-analyzed (snapshot, 2d ago, 82 msgs)
-├── implement-auth (branch, 2d ago)
-├── implement-api (branch, 1d ago)
-└── auth-designed (snapshot, 1d ago, 95 msgs)
-    ├── auth-frontend (branch, 1d ago)
-    └── auth-backend (branch, 23h ago)
-```
-
-```bash
-cmv tree --depth 1                  # limit depth
-cmv tree --json                     # JSON output
-```
+Snapshot/branch hierarchy. `git log --graph` for context.
 
 ### `cmv info <name>`
 
-Show everything about a snapshot.
-
-```bash
-cmv info "codebase-analyzed"
-```
-
-Shows: ID, creation date, source session, project path, message count, JSONL size, description, tags, parent lineage, and all branches.
+Full details on a snapshot — source session, message count, size, lineage, branches.
 
 ### `cmv delete <name>`
 
-Delete a snapshot and its stored files. To delete individual branches, use the `d` key in the TUI dashboard.
+Delete a snapshot. Individual branches can be deleted with `d` in the dashboard.
+
+### `cmv export <name>` / `cmv import <path>`
+
+Move context between machines. Portable `.cmv` archives.
 
 ```bash
-cmv delete "old-snapshot"           # asks for confirmation
-cmv delete "old-snapshot" -f        # skip confirmation
+cmv export "analysis" -o ./team-context.cmv
+cmv import ./team-context.cmv
 ```
 
-### `cmv export <name>`
+Run `cmv config --help` for settings. `cmv completions --install` for shell tab-completion.
 
-Package a snapshot as a portable `.cmv` file for sharing or backup.
+## Trim
 
-```bash
-cmv export "codebase-analyzed"                          # creates ./codebase-analyzed.cmv
-cmv export "codebase-analyzed" -o ~/backups/analysis.cmv  # custom path
+This is the bit that actually matters. A typical 150k-token session looks roughly like this:
+
+| Content | % of context | Value on reload |
+|---------|-------------|-----------------|
+| Tool results (file contents, bash output) | ~60-70% | None — Claude already synthesised these |
+| Thinking signatures (base64 blobs) | ~15-20% | None — cryptographic verification, not reasoning |
+| Your actual conversation | ~10-15% | All of it |
+
+Most of your context window is stuff Claude doesn't need anymore.
+
+`/compact` deals with this by nuking everything and writing a summary. Trim does the opposite: throw away the junk, keep the conversation.
+
+Before trim:
+```
+User: "read auth.ts"
+Claude: [calls Read on src/auth.ts]
+Result: [847 lines of raw TypeScript]                    ← gone
+Claude: "The auth module uses JWT with refresh tokens
+         stored in httpOnly cookies..."                   ← kept
 ```
 
-### `cmv import <path>`
-
-Import a snapshot from a `.cmv` file.
-
-```bash
-cmv import ./codebase-analyzed.cmv                     # import as-is
-cmv import ./codebase-analyzed.cmv --rename "imported"  # rename on import
-cmv import ./codebase-analyzed.cmv --force              # overwrite if exists
+After trim:
+```
+User: "read auth.ts"
+Claude: [calls Read on src/auth.ts]
+Result: [File read: src/auth.ts, 847 lines]              ← stub
+Claude: "The auth module uses JWT with refresh tokens
+         stored in httpOnly cookies..."                   ← kept
 ```
 
-### `cmv config`
+Claude's synthesis — the part with the actual understanding — stays. The 847 lines of raw source are gone. If Claude needs the file again later, it can just re-read it.
 
-View or set configuration.
+**What gets removed:** tool result bodies over 500 chars, thinking signatures, file-history metadata.
 
-```bash
-cmv config                                    # show all settings
-cmv config claude_cli_path                    # show one setting
-cmv config claude_cli_path /usr/local/bin/claude  # set claude path
-```
+**What stays:** every user message, every assistant response, every tool use request, all reasoning.
 
-**Settings:**
-
-| Key | Description | Default |
-|-----|-------------|---------|
-| `claude_cli_path` | Path to claude CLI executable | `claude` (uses PATH) |
-| `default_project` | Default project filter for `cmv sessions` | none |
-
-### `cmv completions`
-
-Install shell tab-completion for all CMV commands, options, snapshot names, and session IDs.
-
-```bash
-cmv completions                     # output completion script
-cmv completions --install           # install to your shell profile
-cmv completions powershell          # force PowerShell format
-cmv completions bash                # force bash format
-```
-
-Supports PowerShell (default on Windows) and bash. After installing, restart your terminal.
+Typical reduction is 50-70%, with near-zero information loss. Compare that to `/compact`, which gets you ~98% reduction but wipes out the entire conversation in the process.
 
 ## Workflows
 
-### Save expensive analysis, branch for each task
+### Analyse once, branch for every task
+
+Say you spend 40 minutes having Claude map your codebase — architecture, patterns, pain points, everything. That's 80k tokens of accumulated understanding. Normally you'd use it once and lose it.
 
 ```bash
-# Have Claude analyze your codebase (in Claude Code)
-# ... long conversation about architecture ...
+cmv snapshot "full-analysis" --latest -d "Architecture deep-dive"
 
-# Save it
-cmv snapshot "full-analysis" --latest -d "Complete codebase analysis"
-
-# Branch for each task — each gets the full context
 cmv branch "full-analysis" --name "add-auth"
-cmv branch "full-analysis" --name "add-api"
-cmv branch "full-analysis" --name "refactor-db"
+cmv branch "full-analysis" --name "refactor-api"
+cmv branch "full-analysis" --name "fix-perf"
 ```
 
-### Chain snapshots for deep work
+Three tasks, each starting from the full analysis, independent of each other. The original snapshot stays put — branch from it again next week if you want.
+
+### Chain context for deep work
+
+Snapshots can build on each other. Work in a branch, snapshot the result, branch from *that*.
 
 ```bash
-# Snapshot after initial analysis
 cmv snapshot "analyzed" --latest
-
-# Branch, do auth design work in that session
 cmv branch "analyzed" --name "auth-work"
+# ... design auth in that session ...
 
-# ... work in the auth session ...
-
-# Snapshot the auth session too
-cmv snapshot "auth-designed" --session <auth-session-id> -t "auth"
-
-# Now branch from the auth snapshot for frontend vs backend
+cmv snapshot "auth-designed" --session <auth-session-id>
 cmv branch "auth-designed" --name "auth-frontend"
 cmv branch "auth-designed" --name "auth-backend"
 ```
 
-### Try multiple approaches
-
-```bash
-cmv snapshot "before-refactor" --latest
-
-cmv branch "before-refactor" --name "approach-a"
-# ... try approach A ...
-
-cmv branch "before-refactor" --name "approach-b"
-# ... try approach B ...
-
-# Compare results, pick the winner
+```
+analyzed
+└── auth-designed
+    ├── auth-frontend
+    └── auth-backend
 ```
 
-### Share context with teammates
+Each level inherits everything above it. The backend branch doesn't need the auth decisions re-explained — they're already there in the context.
+
+### Stay ahead of context bloat
+
+Don't wait for auto-compact to kick in. When a session gets heavy, just exit and trim:
 
 ```bash
-# You: export your analysis
-cmv export "codebase-analyzed" -o ./team-context.cmv
+cmv trim --latest
+```
 
-# Teammate: import and branch
+Fresh session, full conversation, 50-70% less dead weight. Repeat whenever things get chunky.
+
+### Share understanding across a team
+
+A lead spends time getting Claude up to speed on the codebase and making architectural decisions. That context becomes something everyone can use:
+
+```bash
+cmv export "arch-decisions" -o ./team-context.cmv
+
+# Each teammate:
 cmv import ./team-context.cmv
-cmv branch "codebase-analyzed" --name "my-task"
+cmv branch "arch-decisions" --name "my-feature"
 ```
 
-## Storage
+No re-explaining. Everyone starts from the same base.
 
-CMV stores everything in `~/.cmv/`:
+## How It Works
 
-```
-~/.cmv/
-├── index.json              # Master index of all snapshots and branches
-├── config.json             # Settings
-└── snapshots/
-    └── snap_a1b2c3d4/
-        ├── meta.json       # Snapshot metadata (portable)
-        └── session/
-            └── <id>.jsonl  # Copy of the Claude session file
-```
+CMV reads session data from `~/.claude/projects/`. Snapshots copy the JSONL conversation file to `~/.cmv/snapshots/`. Branching copies it back with a new session UUID, updates `sessions-index.json`, and runs `claude --resume`. The JSONL is treated as opaque — forward-compatible with Claude Code format changes.
 
-CMV reads session data from `~/.claude/` for discovery. When branching, it copies the snapshot's JSONL into the Claude project directory with a new session ID and updates `sessions-index.json`, then resumes the new session via `claude --resume`.
+Snapshots track parent lineage, so `cmv tree` can show full history. Export packs a snapshot into a portable archive.
+
+## How CMV Compares
+
+There are a few different approaches to managing Claude Code context. They solve different problems.
+
+| | Built-ins (`/compact`, `/rewind`, `--fork`) | Memory plugins | Session search / monitors | CMV |
+|---|:-:|:-:|:-:|:-:|
+| Undo mistakes mid-session | ✅ | ✗ | ✗ | ✗ |
+| Persist context across sessions | ✗ | ✅ Summary facts only | ✗ | ✅ Full conversation |
+| Find old sessions | ✗ | ✗ | ✅ | ✅ |
+| Named, reusable snapshots | ✗ | ✗ | ✗ | ✅ |
+| Branch from the same point | ✗ | ✗ | ✗ | ✅ |
+| Lossless context cleanup | ✗ | ✗ | ✗ | ✅ |
+| Snapshot lineage / tree view | ✗ | ✗ | ✗ | ✅ |
+| Export / share context | ✗ | Varies | ✗ | ✅ |
+
+CMV doesn't replace any of these — it fills a gap none of them cover. Use them together!
+
+## Why Not Just Use `/rewind`, `/fork`, or `/compact`?
+
+Claude Code already has session-level primitives. CMV isn't replacing them — it's the layer on top that they're missing.
+
+**`/rewind`** is an undo button. It rolls back file edits and conversation within the current session. Good for "Claude just broke my auth module, go back three turns." But it doesn't name states, doesn't persist anything, doesn't trim bloat, and doesn't let you branch from the same point twice. It's a safety net, not a management system.
+
+**`/fork`** creates a one-off copy of your conversation. Useful, but it's not version control. You can't name the fork point, come back to it later, branch five more times from it, see the tree, or trim before forking. After a few days you end up with a flat list of session IDs and no idea which came from where.
+
+**`/compact`** just destroys state. It replaces your entire conversation with a 3-4k token summary the model writes about itself. That 15-turn discussion where you debated JWT vs sessions and explored a bunch of tradeoffs? Now it's: *"We discussed auth and decided on JWT."* Cool, thanks.
+
+**CMV sits above all three.** Use rewind during a session. When the session's done, snapshot and branch with CMV. Use trim instead of compact when things get bloated — it strips 50-70% of dead weight while keeping every message verbatim. They all work together.
 
 ## Troubleshooting
 
-**`cmv sessions` shows nothing**
-- Make sure you've used Claude Code at least once. CMV reads from `~/.claude/projects/`.
-
-**`cmv sessions` is missing a project**
-- Some projects may not have a `sessions-index.json` yet. CMV falls back to scanning `.jsonl` files directly, but the project directory must exist under `~/.claude/projects/`.
-
-**`cmv branch` fails to launch**
-- Check that `claude` is in your PATH: `claude --version`
-- Or set the path explicitly: `cmv config claude_cli_path /usr/local/bin/claude` (Linux/macOS) or `cmv config claude_cli_path "C:\Users\you\.local\bin\claude.exe"` (Windows)
-
-**Snapshot warns "session appears active"**
-- You're snapshotting a session that's currently in use. The snapshot may be incomplete. Best to exit the Claude session first, then snapshot.
-
-**Windows: `cmv` not recognized**
-- Close and reopen your terminal after installing Node.js
-- If using PowerShell, run: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
-
-**Linux: `EACCES` permission error on `npm link`**
-- Use `sudo npm link`, or switch to nvm which doesn't require root for global installs.
-
-**Linux: `cmv` not found after install**
-- If you used nvm, open a new terminal or run `source ~/.bashrc`.
-- If you used a system package manager, check that `/usr/local/bin` is on your PATH: `echo $PATH`
-- You can also run CMV directly: `node /path/to/cmv/dist/index.js`
-
-**Linux: TUI dashboard looks garbled**
-- Make sure your terminal supports 256 colors. Most modern terminals (GNOME Terminal, Konsole, Alacritty, kitty) work fine.
-- If over SSH, ensure `TERM` is set correctly: `echo $TERM` should show something like `xterm-256color`.
-
-## Debug
-
-Set `CMV_DEBUG=1` for full stack traces on errors:
-
-```bash
-CMV_DEBUG=1 cmv sessions
-```
+- **`cmv` not found:** Reopen your terminal. Windows: check `%APPDATA%\npm` is on PATH. Linux: `sudo npm link` or use nvm.
+- **No sessions:** Use Claude Code at least once. CMV reads from `~/.claude/projects/`.
+- **Branch won't launch:** Check `claude --version` works. Or: `cmv config claude_cli_path /path/to/claude`
+- **"Session appears active":** Exit the Claude session before snapshotting.
+- **Debug:** `CMV_DEBUG=1 cmv <command>` for stack traces.

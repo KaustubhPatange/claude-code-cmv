@@ -3,20 +3,37 @@ import { createBranch } from '../core/branch-manager.js';
 import { success, info, dim } from '../utils/display.js';
 import { handleError } from '../utils/errors.js';
 
+function formatSize(bytes: number): string {
+  if (bytes > 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function printTrimMetrics(result: { trimMetrics?: import('../types/index.js').TrimMetrics }): void {
+  if (!result.trimMetrics) return;
+  const m = result.trimMetrics;
+  const saved = m.originalBytes - m.trimmedBytes;
+  const pct = m.originalBytes > 0 ? Math.round((saved / m.originalBytes) * 100) : 0;
+  console.log(`  Trimmed: ${formatSize(m.originalBytes)} → ${formatSize(m.trimmedBytes)} (${pct}% reduction)`);
+  console.log(`  Removed: ${m.toolResultsStubbed} tool results, ${m.signaturesStripped} signatures, ${m.fileHistoryRemoved} file-history entries`);
+  console.log(`  Preserved: ${m.userMessages} user msgs, ${m.assistantResponses} assistant msgs, ${m.toolUseRequests} tool uses`);
+}
+
 export function registerBranchCommand(program: Command): void {
   program
     .command('branch <snapshot>')
     .description('Create a new session from a snapshot')
     .option('-n, --name <name>', 'Name for the branch')
+    .option('--trim', 'Trim context before branching (removes tool results, signatures, file history)')
     .option('--skip-launch', "Don't launch Claude Code, just create the session file")
     .option('--dry-run', 'Show what would happen without doing it')
-    .action(async (snapshotName: string, opts: { name?: string; skipLaunch?: boolean; dryRun?: boolean }) => {
+    .action(async (snapshotName: string, opts: { name?: string; trim?: boolean; skipLaunch?: boolean; dryRun?: boolean }) => {
       try {
         const result = await createBranch({
           snapshotName,
           branchName: opts.name,
           noLaunch: opts.skipLaunch,
           dryRun: opts.dryRun,
+          trim: opts.trim,
         });
 
         if (opts.dryRun) {
@@ -37,11 +54,13 @@ export function registerBranchCommand(program: Command): void {
           if (result.projectDir) {
             console.log(`  Project dir: ${dim(result.projectDir)}`);
           }
+          printTrimMetrics(result);
           return;
         }
 
         success(`Branch "${result.branchName}" created and session launched.`);
         console.log(`  Session ID: ${result.forkedSessionId}`);
+        printTrimMetrics(result);
       } catch (err) {
         handleError(err);
       }

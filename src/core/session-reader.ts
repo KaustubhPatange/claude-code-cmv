@@ -371,6 +371,43 @@ function decodeDirName(dirName: string): string {
 }
 
 /**
+ * Delete a Claude Code session: removes the JSONL file, any session
+ * subdirectory (subagents, tool-results), and the sessions-index.json entry.
+ */
+export async function deleteSession(
+  entry: ClaudeSessionEntry & { _projectDir: string }
+): Promise<void> {
+  const { sessionId, _projectDir: projectDir } = entry;
+
+  // Delete the session JSONL file
+  const jsonlPath = path.join(projectDir, `${sessionId}.jsonl`);
+  try {
+    await fs.unlink(jsonlPath);
+  } catch {
+    // File may already be gone
+  }
+
+  // Delete the session subdirectory (newer format: subagents/, tool-results/)
+  const sessionDir = path.join(projectDir, sessionId);
+  try {
+    await fs.rm(sessionDir, { recursive: true, force: true });
+  } catch {
+    // Directory may not exist (older session format)
+  }
+
+  // Remove from sessions-index.json
+  const indexPath = path.join(projectDir, 'sessions-index.json');
+  try {
+    const raw = await fs.readFile(indexPath, 'utf-8');
+    const index = JSON.parse(raw) as { version: number; entries: Array<{ sessionId: string }>; originalPath?: string };
+    index.entries = index.entries.filter(e => e.sessionId !== sessionId);
+    await fs.writeFile(indexPath, JSON.stringify(index, null, 2), 'utf-8');
+  } catch {
+    // sessions-index.json may not exist or be malformed
+  }
+}
+
+/**
  * Read sessions-index.json for a specific project directory.
  * Exported for use by branch-manager (to diff before/after fork).
  */

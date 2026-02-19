@@ -14,12 +14,13 @@ import { ImportPrompt } from './ImportPrompt.js';
 import { createSnapshot } from '../core/snapshot-manager.js';
 import { createBranch, deleteBranch } from '../core/branch-manager.js';
 import { deleteSnapshot } from '../core/snapshot-manager.js';
+import { deleteSession } from '../core/session-reader.js';
 import { exportSnapshot } from '../core/exporter.js';
 import { importSnapshot } from '../core/importer.js';
 import { initialize } from '../core/metadata-store.js';
 import type { TreeNode } from '../types/index.js';
 
-export type DashboardAction = 'quit' | 'branch-launch' | 'resume';
+export type DashboardAction = 'quit' | 'branch-launch' | 'trim-launch' | 'resume';
 
 export interface DashboardResult {
   action: DashboardAction;
@@ -33,7 +34,7 @@ interface DashboardProps {
   onExit: (result: DashboardResult) => void;
 }
 
-type Mode = 'navigate' | 'branch-prompt' | 'branch-launch-prompt' | 'snapshot-prompt' | 'confirm-delete' | 'confirm-delete-branch' | 'import-prompt';
+type Mode = 'navigate' | 'branch-prompt' | 'branch-launch-prompt' | 'trim-prompt' | 'snapshot-prompt' | 'confirm-delete' | 'confirm-delete-branch' | 'confirm-delete-session' | 'import-prompt';
 type FocusPane = 'projects' | 'tree';
 
 interface StatusMessage {
@@ -167,10 +168,20 @@ export function Dashboard({ onExit }: DashboardProps) {
       setMode('confirm-delete-branch');
       return;
     }
+    if (input === 'd' && nav.selectedNode?.type === 'session') {
+      setMode('confirm-delete-session');
+      return;
+    }
 
     // Export selected snapshot
     if (input === 'e' && nav.selectedNode?.type === 'snapshot') {
       handleExport();
+      return;
+    }
+
+    // Trim from selected snapshot
+    if (input === 't' && nav.selectedNode?.type === 'snapshot') {
+      setMode('trim-prompt');
       return;
     }
 
@@ -310,6 +321,22 @@ export function Dashboard({ onExit }: DashboardProps) {
     }
   }, [nav.selectedNode, findParentSnapshotName, refresh]);
 
+  const handleDeleteSession = useCallback(async () => {
+    setMode('navigate');
+    if (!nav.selectedNode?.session) return;
+    const session = nav.selectedNode.session;
+    const sessionId = session.sessionId;
+    // _projectDir is present at runtime (from listAllSessions) but not in the base type
+    const entry = session as typeof session & { _projectDir: string };
+    try {
+      await deleteSession(entry);
+      setStatus({ text: `Session ${sessionId.substring(0, 8)}… deleted`, type: 'success' });
+      refresh();
+    } catch (err) {
+      setStatus({ text: `Delete failed: ${(err as Error).message}`, type: 'error' });
+    }
+  }, [nav.selectedNode, refresh]);
+
   const handleExport = useCallback(async () => {
     if (!nav.selectedNode?.snapshot) return;
     const name = nav.selectedNode.name;
@@ -331,6 +358,27 @@ export function Dashboard({ onExit }: DashboardProps) {
       setStatus({ text: `Import failed: ${(err as Error).message}`, type: 'error' });
     }
   }, [refresh]);
+
+  const handleTrim = useCallback(async (branchName: string) => {
+    setMode('navigate');
+    if (!nav.selectedNode?.snapshot) return;
+    try {
+      const result = await createBranch({
+        snapshotName: nav.selectedNode.name,
+        branchName,
+        noLaunch: true,
+        trim: true,
+      });
+      const m = result.trimMetrics;
+      const msg = m
+        ? `Trimmed branch "${branchName}" created (${formatBytes(m.originalBytes)} → ${formatBytes(m.trimmedBytes)})`
+        : `Trimmed branch "${branchName}" created`;
+      setStatus({ text: msg, type: 'success' });
+      refresh();
+    } catch (err) {
+      setStatus({ text: `Trim failed: ${(err as Error).message}`, type: 'error' });
+    }
+  }, [nav.selectedNode, refresh]);
 
   const cancelPrompt = useCallback(() => {
     setMode('navigate');
@@ -389,6 +437,7 @@ export function Dashboard({ onExit }: DashboardProps) {
         <DetailPane
           node={nav.selectedNode}
           width={detailWidth}
+          sessions={selectedProject?.sessions}
         />
       </Box>
 
@@ -431,6 +480,21 @@ export function Dashboard({ onExit }: DashboardProps) {
           onCancel={cancelPrompt}
         />
       )}
+      {mode === 'confirm-delete-session' && nav.selectedNode?.session && (
+        <ConfirmDelete
+          name={nav.selectedNode.session.sessionId.substring(0, 8) + '…'}
+          branchCount={0}
+          onConfirm={handleDeleteSession}
+          onCancel={cancelPrompt}
+        />
+      )}
+      {mode === 'trim-prompt' && nav.selectedNode && (
+        <BranchPrompt
+          snapshotName={nav.selectedNode.name}
+          onSubmit={handleTrim}
+          onCancel={cancelPrompt}
+        />
+      )}
       {mode === 'import-prompt' && (
         <ImportPrompt onSubmit={handleImport} onCancel={cancelPrompt} />
       )}
@@ -447,4 +511,12 @@ export function Dashboard({ onExit }: DashboardProps) {
       )}
     </Box>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
 }

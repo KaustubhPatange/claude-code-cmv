@@ -96,6 +96,7 @@ export interface BranchOptions {
   name?: string;
   noLaunch?: boolean;
   dryRun?: boolean;
+  trim?: boolean;
 }
 
 export interface SessionsOptions {
@@ -126,4 +127,35 @@ export interface ExportOptions {
 export interface ImportOptions {
   rename?: string;
   force?: boolean;
+}
+
+// ============================================================
+// Trim Types
+// ============================================================
+
+export interface TrimMetrics {
+  originalBytes: number;
+  trimmedBytes: number;
+  toolResultsStubbed: number;
+  signaturesStripped: number;
+  fileHistoryRemoved: number;
+  userMessages: number;
+  assistantResponses: number;
+  toolUseRequests: number;
+}
+
+export interface SessionAnalysis {
+  totalBytes: number;
+  estimatedTokens: number;
+  contextLimit: number;
+  contextUsedPercent: number;
+  breakdown: {
+    toolResults: { bytes: number; count: number; percent: number };
+    thinkingSignatures: { bytes: number; count: number; percent: number };
+    fileHistory: { bytes: number; count: number; percent: number };
+    conversation: { bytes: number; percent: number };
+    toolUseRequests: { bytes: number; count: number; percent: number };
+    other: { bytes: number; percent: number };
+  };
+  messageCount: { user: number; assistant: number; toolResults: number };
 }

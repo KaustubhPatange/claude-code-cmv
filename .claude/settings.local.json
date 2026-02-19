@@ -47,10 +47,24 @@
       "Bash(npm unlink:*)",
       "Bash(file:*)",
       "Bash(git check-ignore:*)",
-      "Bash(git -C /home/cosmo/Documents/Repos/claude-code-cmv log --oneline -10)"
+      "Bash(git -C /home/cosmo/Documents/Repos/claude-code-cmv log --oneline -10)",
+      "Bash(python3 -m json.tool:*)",
+      "Bash(awk:*)",
+      "Bash(~/scoop/shims/scoop install vhs)",
+      "Bash(~/scoop/shims/vhs.exe:*)",
+      "Bash(export PATH=\"$HOME/scoop/shims:$PATH\")",
+      "Bash(vhs:*)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft/Edge/Application/**)",
+      "Read(//c/Program Files \\(x86\\)/Google/**)",
+      "Bash(~/scoop/shims/scoop install agg)",
+      "Bash(~/scoop/shims/agg:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(~/scoop/shims/ffmpeg:*)",
+      "Bash(~/scoop/shims/ffmpeg.exe:*)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\yasin\\.claude\\projects\\d--hiddenstate"
+      "C:\\Users\\yasin\\.claude\\projects\\d--hiddenstate",
+      "d:\\VMC"
     ]
   }
 }

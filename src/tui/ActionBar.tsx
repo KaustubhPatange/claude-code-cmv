@@ -21,6 +21,7 @@ export function ActionBar({ selectedNode }: ActionBarProps) {
       {selectedNode?.type === 'snapshot' && (
         <>
           <KeyHint keyChar="b" label="Branch" />
+          <KeyHint keyChar="t" label="Trim" />
           <KeyHint keyChar="s" label="Snapshot" />
           <KeyHint keyChar="d" label="Delete" />
           <KeyHint keyChar="e" label="Export" />
@@ -33,6 +34,7 @@ export function ActionBar({ selectedNode }: ActionBarProps) {
         <>
           <KeyHint keyChar="Enter" label="Open" />
           <KeyHint keyChar="s" label="Snapshot this" />
+          <KeyHint keyChar="d" label="Delete" />
           <KeyHint keyChar="i" label="Import" />
           <KeyHint keyChar="Tab" label="Switch" />
           <KeyHint keyChar="q" label="Quit" />

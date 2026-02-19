@@ -4,12 +4,15 @@ import { getSnapshot, addBranch, removeBranch, readConfig } from './metadata-sto
 import { generateUUID } from '../utils/id.js';
 import { spawnClaudeInteractive, getClaudeCliPath } from '../utils/process.js';
 import { getClaudeProjectsDir, getCmvSnapshotsDir } from '../utils/paths.js';
+import { trimJsonl } from './trimmer.js';
+import type { TrimMetrics } from '../types/index.js';
 
 export interface BranchParams {
   snapshotName: string;
   branchName?: string;
   noLaunch?: boolean;
   dryRun?: boolean;
+  trim?: boolean;
 }
 
 export interface BranchResult {
@@ -18,6 +21,7 @@ export interface BranchResult {
   command: string;
   launched: boolean;
   projectDir?: string;
+  trimMetrics?: TrimMetrics;
 }
 
 /**
@@ -100,12 +104,17 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
     };
   }
 
-  // Copy snapshot JSONL to project directory with new session ID
+  // Copy (or trim) snapshot JSONL to project directory with new session ID
   const destJsonlPath = path.join(projectDir, `${newSessionId}.jsonl`);
+  let trimMetrics: TrimMetrics | undefined;
   try {
-    await fs.copyFile(snapshotJsonlPath, destJsonlPath);
+    if (params.trim) {
+      trimMetrics = await trimJsonl(snapshotJsonlPath, destJsonlPath);
+    } else {
+      await fs.copyFile(snapshotJsonlPath, destJsonlPath);
+    }
   } catch (err) {
-    throw new Error(`Failed to copy session file: ${(err as Error).message}`);
+    throw new Error(`Failed to ${params.trim ? 'trim' : 'copy'} session file: ${(err as Error).message}`);
   }
 
   // Update sessions-index.json in the project directory
@@ -114,7 +123,8 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
     projectDir,
     newSessionId,
     destJsonlPath,
-    decodedProjectPath
+    decodedProjectPath,
+    branchName
   );
 
   // Record the branch in CMV's index
@@ -131,6 +141,7 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
       command: `cd "${cwd}" && ${command}`,
       launched: false,
       projectDir,
+      trimMetrics,
     };
   }
 
@@ -158,6 +169,7 @@ export async function createBranch(params: BranchParams): Promise<BranchResult> 
     command,
     launched: true,
     projectDir,
+    trimMetrics,
   };
 }
 
@@ -312,7 +324,8 @@ async function updateSessionsIndex(
   projectDir: string,
   sessionId: string,
   jsonlPath: string,
-  projectPath: string
+  projectPath: string,
+  branchName: string
 ): Promise<void> {
   const indexPath = path.join(projectDir, 'sessions-index.json');
 
@@ -354,7 +367,7 @@ async function updateSessionsIndex(
     sessionId,
     fullPath: jsonlPath,
     fileMtime: Math.round(stat.mtimeMs),
-    firstPrompt: '(CMV branch)',
+    firstPrompt: branchName,
     messageCount: 0,
     created: now,
     modified: now,

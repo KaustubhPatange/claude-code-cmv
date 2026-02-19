@@ -85,7 +85,7 @@ cmv delete "old-snapshot"
 ### Core Design Principles
 
 1. **Minimal writes to Claude Code storage.** CMV reads from `~/.claude/` for session discovery and snapshot creation. When branching, CMV writes two things to the Claude project directory: (a) the snapshot's JSONL file with a new session UUID, and (b) an updated `sessions-index.json` entry. This is necessary because `claude --resume` requires the session file to be in the project directory.
-2. **Opaque session data.** CMV copies session files verbatim without parsing internal message format. This makes CMV resilient to Claude Code format changes.
+2. **Mostly opaque session data.** Standard branching copies session files verbatim. The `--trim` flag parses JSONL to strip known bloat categories (tool results, signatures, file history) but preserves all conversation content. The analyzer reads JSONL for the details panel context breakdown.
 3. **Cross-platform.** All paths use `os.homedir()` and `path.join()`. No hardcoded Unix paths. Must work on Windows, macOS, and Linux.
 4. **Explicit over magic.** No auto-detection of "current session." User provides session IDs or uses `--latest` flag.
 
@@ -115,6 +115,7 @@ cmv delete "old-snapshot"
 │  SessionReader     SnapshotManager           │
 │  BranchManager     TreeBuilder               │
 │  MetadataStore     Exporter/Importer         │
+│  Trimmer           Analyzer                  │
 └──────┬──────────────────┬───────────────────┘
        │                  │
        ▼                  ▼
@@ -331,9 +332,34 @@ Responsibilities:
 - Handle snapshot chaining (parent_snapshot references)
 - Record Claude Code version at snapshot time (for compatibility warnings)
 
-### 3. BranchManager
+### 3. Trimmer
 
-Creates and deletes Claude Code sessions from snapshots using a direct file copy approach.
+Streaming JSONL processor that strips bloat from session files while preserving conversation.
+
+Responsibilities:
+- Read JSONL line by line, apply trimming rules, write output
+- Skip `file-history-snapshot` entries entirely
+- Stub tool result bodies >500 chars with summary placeholders
+- Strip thinking block `signature` fields (base64 verification blobs)
+- Preserve all user messages, assistant text, tool_use requests, thinking text
+- Return `TrimMetrics` (original/trimmed bytes, counts of each removal type)
+
+### 4. Analyzer
+
+Read-only JSONL analyzer that returns a context breakdown without modifying the file.
+
+Responsibilities:
+- Detect compaction boundaries (`type:"summary"` lines) and only analyze the active context (post-last-compaction). Claude Code's JSONL is append-only — when auto-compact fires, old messages stay in the file but are no longer in the active context window.
+- Categorize content by type: tool results, thinking signatures, file history, conversation, tool uses
+- Estimate token count from actual text content characters (not raw file bytes or JSON overhead), using ~4 chars/token heuristic
+- Calculate context window usage percentage (vs 200k limit)
+- Calculate trimmable amount (bytes that `--trim` would remove)
+- Handle role detection correctly: assistant responses have `type:"message"` + `role:"assistant"` in the JSONL, so the analyzer checks `parsed.role` before `parsed.type`
+- Used by the TUI DetailPane to show context analysis for snapshots, branches, and sessions
+
+### 5. BranchManager
+
+Creates and deletes Claude Code sessions from snapshots using a direct file copy approach. When `--trim` is enabled, calls Trimmer instead of copying verbatim.
 
 **How branching works** (`--fork-session` was unreliable for stored snapshots, so CMV uses direct JSONL copy):
 
@@ -364,7 +390,7 @@ Responsibilities:
 - Provide `--skip-launch` mode that creates the session file without launching
 - Handle errors (no conversation content, project dir not found, CLI exit codes, etc.)
 
-### 4. TreeBuilder
+### 6. TreeBuilder
 
 Builds and renders the snapshot/branch hierarchy.
 
@@ -385,7 +411,7 @@ codebase-analyzed (2025-02-17 14:30, ~51k tokens)
     └── auth-backend (branch, 15:40)
 ```
 
-### 5. MetadataStore
+### 7. MetadataStore
 
 Manages the index.json file with atomic operations.
 
@@ -396,7 +422,7 @@ Responsibilities:
 - Schema migration support for future versions
 - Cross-platform file locking (advisory)
 
-### 6. Exporter/Importer
+### 8. Exporter/Importer
 
 Handles portable snapshot files for sharing.
 
@@ -406,7 +432,7 @@ Responsibilities:
 - Handle name conflicts (prompt rename or use `--force`)
 - Validate CMV version compatibility on import
 
-### 7. TUI Dashboard (Ink/React)
+### 9. TUI Dashboard (Ink/React)
 
 Interactive three-pane terminal interface for managing all CMV operations visually.
 
@@ -430,7 +456,7 @@ Interactive three-pane terminal interface for managing all CMV operations visual
 - `useTreeNavigation` — Flattens tree with expand/collapse, keyboard navigation (j/k, arrows)
 - `useTerminalSize` — Tracks terminal dimensions for responsive layout
 
-**Modes:** `navigate` | `branch-prompt` | `branch-launch-prompt` | `snapshot-prompt` | `confirm-delete` | `confirm-delete-branch` | `import-prompt`
+**Modes:** `navigate` | `branch-prompt` | `branch-launch-prompt` | `trim-prompt` | `snapshot-prompt` | `confirm-delete` | `confirm-delete-branch` | `import-prompt`
 
 **Key bindings (navigate mode):**
 
@@ -442,6 +468,7 @@ Interactive three-pane terminal interface for managing all CMV operations visual
 | `Enter` | Snapshot | Prompt for name, branch and launch Claude |
 | `Enter` | Branch/Session | Resume session (launch Claude) |
 | `b` | Snapshot | Create branch without launching |
+| `t` | Snapshot | Create trimmed branch (strips tool results, signatures, file history) |
 | `s` | Any | Create snapshot (from selected session or latest) |
 | `d` | Snapshot | Delete snapshot (with confirmation) |
 | `d` | Branch | Delete branch and its session file (with confirmation) |
@@ -460,6 +487,7 @@ Interactive three-pane terminal interface for managing all CMV operations visual
 | `cmv` / `cmv dashboard` | Launch the interactive TUI dashboard |
 | `cmv snapshot <n>` | Snapshot a session |
 | `cmv branch <snapshot>` | Create a new session from a snapshot |
+| `cmv trim` | Snapshot + trimmed branch in one step |
 | `cmv list` | List all snapshots with metadata |
 | `cmv sessions` | List discoverable Claude Code sessions |
 | `cmv tree` | Show snapshot/branch hierarchy as ASCII tree |
@@ -481,8 +509,15 @@ cmv snapshot <n> [options]
 
 cmv branch <snapshot-name> [options]
   --name, -n          Name for the branch (default: auto-generated timestamp)
+  --trim              Trim context before branching (removes tool results, signatures, file history)
   --skip-launch       Don't launch Claude Code, just create the session file
   --dry-run           Show what would happen without doing it
+
+cmv trim [options]
+  --session, -s       Session ID to trim
+  --latest            Trim the most recently modified session
+  --name, -n          Name for the snapshot
+  --skip-launch       Don't launch Claude Code after trimming
 
 cmv sessions [options]
   --project, -p       Filter by project path (also speeds up lookup)
@@ -531,6 +566,7 @@ All core phases are complete:
 5. **Polish** — Error handling, shell completions (PowerShell + bash), README.
 6. **TUI Dashboard** — Interactive three-pane interface with Ink/React, forked worker process for Windows stdin compatibility.
 7. **Branch deletion** — Delete branches and their session files from both TUI (`d` key) and core API.
+8. **Context trimming** — `cmv branch --trim` and `cmv trim` commands. Streaming JSONL trimmer strips tool results, thinking signatures, and file-history entries. TUI `[t]` key for quick trim. Context analyzer shows token usage breakdown and trimmable amount in the details panel. See `docs/trim-flag.md`.
 
 ---
 
@@ -581,12 +617,15 @@ cmv/
 │   │   ├── export.ts
 │   │   ├── import.ts
 │   │   ├── config.ts
+│   │   ├── trim.ts            # cmv trim convenience command
 │   │   ├── completions.ts
 │   │   └── dashboard.ts
 │   ├── core/
 │   │   ├── session-reader.ts
 │   │   ├── snapshot-manager.ts
-│   │   ├── branch-manager.ts  # createBranch + deleteBranch
+│   │   ├── branch-manager.ts  # createBranch + deleteBranch (supports --trim)
+│   │   ├── trimmer.ts         # Streaming JSONL trimmer
+│   │   ├── analyzer.ts        # Read-only JSONL context analyzer
 │   │   ├── tree-builder.ts
 │   │   ├── metadata-store.ts
 │   │   ├── exporter.ts
@@ -661,7 +700,7 @@ cmv --help
 - **Minimal writes to `~/.claude/`.** CMV reads from Claude storage for discovery. When branching, CMV writes the snapshot JSONL (with new UUID) and updates `sessions-index.json`. When deleting a branch, it removes the JSONL and the `sessions-index.json` entry. No other Claude files are modified.
 - **Branching uses direct JSONL copy + `claude --resume <new-id>`.** The `--fork-session` approach was abandoned because it couldn't reliably find stored sessions. CMV places the file where Claude expects it, then resumes by the new UUID.
 - **All paths must use `path.join()` and `os.homedir()`.** Primary development platform is Windows.
-- **Session data is opaque.** Copy verbatim. Don't parse internal message format (except to count user/assistant messages for validation).
+- **Session data is mostly opaque.** Standard branching copies verbatim. `--trim` parses JSONL to strip bloat but preserves all conversation content. The analyzer reads JSONL for the details panel context breakdown.
 - **Atomic file writes for index.json.** Write to temp file, then `fs.rename()`.
 - **Warn on active sessions.** Don't snapshot a session that's currently being written to.
 - **Validate conversation content.** Refuse to branch from snapshots that have zero user/assistant messages (file-tracking-only sessions).
@@ -677,7 +716,7 @@ cmv --help
 
 ## Non-Goals (For Now)
 
-- **Context compression/optimization**: CMV snapshots full session state. Compaction optimization is a separate tool.
+- **Context compression/optimization**: `--trim` removes known bloat (tool results, signatures, file history) but does not compress or summarize conversation content. Semantic compaction is left to Claude Code's built-in `/compact`.
 - **Automatic snapshot triggers**: No hooks into Claude Code's lifecycle yet. User explicitly snapshots. (Future: SessionStart/SessionEnd hooks could auto-snapshot.)
 - **Merge**: No merging of diverged branches. Git does this for code; there's no meaningful merge for conversation state.
 - **Diff**: No semantic diff between branches. The divergence point is known (the snapshot), but comparing conversation content is out of scope for v1.

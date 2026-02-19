@@ -13,6 +13,7 @@ import { registerExportCommand } from './commands/export.js';
 import { registerImportCommand } from './commands/import.js';
 import { registerCompletionsCommand } from './commands/completions.js';
 import { registerDashboardCommand } from './commands/dashboard.js';
+import { registerTrimCommand } from './commands/trim.js';
 
 const program = new Command();
 
@@ -33,6 +34,7 @@ registerConfigCommand(program);
 registerExportCommand(program);
 registerImportCommand(program);
 registerCompletionsCommand(program);
+registerTrimCommand(program);
 registerDashboardCommand(program);
 
 // Default action: launch dashboard when no subcommand is provided
@@ -47,6 +49,14 @@ program.action(async () => {
         snapshotName: result.snapshotName,
         branchName: result.branchName,
         noLaunch: false,
+      });
+    } else if (result.action === 'trim-launch' && result.snapshotName) {
+      const { createBranch } = await import('./core/branch-manager.js');
+      await createBranch({
+        snapshotName: result.snapshotName,
+        branchName: result.branchName,
+        noLaunch: false,
+        trim: true,
       });
     } else if (result.action === 'resume' && result.sessionId) {
       const { spawnClaudeInteractive } = await import('./utils/process.js');
